@@ -4,10 +4,10 @@ SHELL := /usr/bin/env bash
 PROJECT_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 export PROJECT_ROOT
 
-.PHONY: help inventory validate bootstrap productize etri-only release-check status demo test destroy-demo rollback build-images portal
+.PHONY: help inventory validate bootstrap productize etri-only release-check status demo test destroy-demo rollback build-images portal portfolio-check recovery-plan resilience-plan
 
 help:
-	@printf '%s\n' 'make inventory | validate | bootstrap | productize | etri-only | release-check | status | demo | test | destroy-demo | rollback | build-images | portal'
+	@printf '%s\n' 'make inventory | validate | bootstrap | productize | etri-only | release-check | status | demo | test | destroy-demo | rollback | build-images | portal | portfolio-check | recovery-plan | resilience-plan'
 
 inventory:
 	@bash scripts/inventory.sh
@@ -46,3 +46,12 @@ destroy-demo:
 
 rollback:
 	@bash scripts/rollback.sh
+
+portfolio-check:
+	@bash portfolio/scripts/test.sh
+
+recovery-plan:
+	@bash portfolio/scripts/recovery-drill.sh plan
+
+resilience-plan:
+	@bash portfolio/scripts/resilience-drill.sh plan

@@ -22,6 +22,9 @@
 
 직접 하나씩 확인하려면 [GUIDEBOOK.md](GUIDEBOOK.md)를 따라가십시오. 조회, 포털 CPU/GPU Job, Kubeflow, MCP, 직접 API, 로컬 테스트와 정리 순서로 구성돼 있습니다.
 
+NAIS 기술직-1 직무요건과 구현 증거의 대응, SLURM PoC, 복구·가용성 훈련,
+10분 발표와 라이브 데모 동선은 [portfolio](portfolio)에 모았습니다.
+
 ```bash
 make inventory
 make validate
@@ -31,6 +34,9 @@ make release-check
 make demo
 make test
 make portal
+make portfolio-check
+make recovery-plan
+make resilience-plan
 make destroy-demo
 ```
 
@@ -43,6 +49,9 @@ make destroy-demo
 - `make demo`: CPU/GPU/Quota Demo 제출과 증거 기록
 - `make test`: ETRI 최소권한 RBAC, API Session/Validation, KFP, MCP, Ingress 검증
 - `make portal`: ETRI 포털을 `0.0.0.0:8090`에 임시 공개
+- `make portfolio-check`: 기존 제품 테스트와 직무 증거 패키지의 정적·보안 검증
+- `make recovery-plan`: 데이터 변경 없이 격리 Backup/Restore Drill 절차 출력
+- `make resilience-plan`: Pod 변경 없이 PDB 기반 가용성 Drill 절차 출력
 - `make destroy-demo`: 프로젝트 Demo Job만 삭제하며 PVC·운영 구성요소는 보존
 
 Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 고정 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이며 검증 Digest는 `sha256:f2a36e42338a9bbfa3fd9d627aa33ace2fcf2f63add7e1c7465b9590acfd61b5`입니다.
@@ -99,6 +108,7 @@ tests/         Unit/API/Manifest 테스트
 docs/          설계·보안·운영·실행 증거
 documentation/ 제품 인수인계용 Architecture/Flow/Permission/Variable/Test/Automation Map
 workspace-topology/ 라이브 토폴로지 API·Workspace UI·배포 Overlay
+portfolio/      NAIS 기술직-1 추적표·발표·SLURM·복구·가용성·보안 증거
 ```
 
 운영 절차는 [runbook.md](docs/runbook.md), 재현 조건은 [reproducibility.md](docs/reproducibility.md), 보안 제한은 [security-decisions.md](docs/security-decisions.md)를 참고하십시오.

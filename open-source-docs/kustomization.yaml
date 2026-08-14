@@ -7,6 +7,7 @@ configMapGenerator:
   - name: mini-science-ai-os-ko-site
     files:
       - index.html=site/index.html
+      - operations-dashboard.png=site/operations-dashboard.png
 generatorOptions:
   labels:
     app.kubernetes.io/name: mini-science-ai-os-ko-site

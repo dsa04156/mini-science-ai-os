@@ -2,6 +2,10 @@
 
 `tenant-etri` 전용 내부 운영 제품인 NAIS Science Workspace입니다. 연구자는 Kubernetes Manifest 대신 웹 포털, Science Job API 또는 MCP를 사용합니다. Kueue가 입장·Quota를 결정하고, kube-scheduler/HAMi가 CPU·GPU 배치를 수행하며, Kubeflow Pipelines가 실행 이력·Metric·Artifact를 관리합니다.
 
+![실제 장비와 실행 증거를 결합한 NAIS Science Workspace 운영 대시보드](portfolio/screenshots/operations-dashboard-desktop.png)
+
+대시보드는 데모 숫자를 표시하지 않습니다. 실제 5개 노드의 Kubernetes 상태, Kueue 입장 판정, HAMi 논리 할당, Prometheus 구성요소 상태와 DCGM 물리 GPU 신호를 `/v1/operations`에서 결합합니다. 화면의 시계열 값은 장비 상태에 따라 계속 바뀝니다.
+
 ## 현재 검증 상태
 
 - PASS: Kubeflow Pipelines 2.17.0, Metadata, MySQL, MinIO Artifact 저장소 배포
@@ -10,6 +14,7 @@
 - PASS: Quota 초과 Workload 대기 사유와 이후 입장
 - PASS: MCP 자기 Job 제출·조회·취소와 Audit JSON
 - PASS: ETRI 연구자 포털 자동 세션, Job 제출·조회·Metric·Artifact·취소, 데스크톱/모바일 UI
+- PASS: 실제 5개 노드·2개 GPU의 Kueue/HAMi/Prometheus/DCGM 운영 대시보드
 - PASS: ETRI 전용 Ingress, 2-replica API/MCP, PDB, Rate Limit·Security Header
 - READY: `trusted-network` 내부 제품 모드와 `192.168.0.0/24` Ingress 접근 제한
 - 운영 제약: Flannel NetworkPolicy 강제 여부와 Argo CD Git Sync는 별도 개선 항목
@@ -54,7 +59,7 @@ make destroy-demo
 - `make resilience-plan`: Pod 변경 없이 PDB 기반 가용성 Drill 절차 출력
 - `make destroy-demo`: 프로젝트 Demo Job만 삭제하며 PVC·운영 구성요소는 보존
 
-Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 고정 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이며 검증 Digest는 `sha256:f2a36e42338a9bbfa3fd9d627aa33ace2fcf2f63add7e1c7465b9590acfd61b5`입니다.
+Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 기본 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이고, 운영 대시보드 Overlay는 `0.3.4-showcase` (`sha256:1a54a9991b5a78379ac6ff257b013710c604ea0843741f036b0b2ec520e3c31c`)로 배포합니다.
 
 ## 접근
 

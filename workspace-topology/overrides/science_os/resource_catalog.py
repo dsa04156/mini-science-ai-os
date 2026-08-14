@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -92,6 +93,203 @@ async def _query_prometheus(query: str) -> float | None:
     except (httpx2.HTTPError, ValueError, TypeError, KeyError):
         PROMETHEUS_ERRORS.inc()
         return None
+
+
+async def _query_prometheus_vector(query: str) -> list[dict[str, Any]]:
+    base = os.getenv("PROMETHEUS_URL", "http://prometheus-kube-prometheus-prometheus.kube-system.svc.cluster.local:9090").rstrip("/")
+    try:
+        async with httpx2.AsyncClient(timeout=3.0) as http:
+            response = await http.get(f"{base}/api/v1/query", params={"query": query})
+            response.raise_for_status()
+            payload = response.json()
+            results = payload.get("data", {}).get("result", [])
+            return results if isinstance(results, list) else []
+    except (httpx2.HTTPError, ValueError, TypeError, KeyError):
+        PROMETHEUS_ERRORS.inc()
+        return []
+
+
+def _metric_value(item: dict[str, Any]) -> float | None:
+    try:
+        return float(item.get("value", [None, None])[1])
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def _cpu_cores(value: Any) -> float:
+    text = str(value or "0")
+    try:
+        return float(text[:-1]) / 1000 if text.endswith("m") else float(text)
+    except ValueError:
+        return 0.0
+
+
+def _fleet_summary(nodes: list[dict[str, Any]]) -> dict[str, Any]:
+    architectures: dict[str, int] = {}
+    execution_classes: dict[str, int] = {}
+    for node in nodes:
+        architecture = str(node.get("architecture") or "unknown")
+        execution_class = str(node.get("executionClass") or "unknown")
+        architectures[architecture] = architectures.get(architecture, 0) + 1
+        execution_classes[execution_class] = execution_classes.get(execution_class, 0) + 1
+    compute_values = [node.get("pressure", {}).get("compute") for node in nodes]
+    memory_values = [node.get("pressure", {}).get("memory") for node in nodes]
+    compute_samples = [float(value) for value in compute_values if isinstance(value, (int, float))]
+    memory_samples = [float(value) for value in memory_values if isinstance(value, (int, float))]
+    return {
+        "nodeCount": len(nodes),
+        "readyNodeCount": sum(node.get("health") == "ready" for node in nodes),
+        "gpuNodeCount": sum(bool(node.get("accelerator")) for node in nodes),
+        "physicalGpuCount": sum(len(node.get("gpuDevices", [])) for node in nodes),
+        "cpuCores": round(sum(_cpu_cores(node.get("allocatable", {}).get("cpu")) for node in nodes), 1),
+        "memoryGiB": round(sum(parse_memory_bytes(str(node.get("allocatable", {}).get("memory") or "0")) for node in nodes) / 1024**3, 1),
+        "architectures": architectures,
+        "executionClasses": execution_classes,
+        "averageCpuPercent": round(sum(compute_samples) / len(compute_samples), 1) if compute_samples else None,
+        "averageMemoryPercent": round(sum(memory_samples) / len(memory_samples), 1) if memory_samples else None,
+    }
+
+
+async def _gpu_telemetry(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    metric_names = {
+        "utilizationPercent": "DCGM_FI_DEV_GPU_UTIL",
+        "memoryUsedMiB": "DCGM_FI_DEV_FB_USED",
+        "temperatureC": "DCGM_FI_DEV_GPU_TEMP",
+        "powerWatts": "DCGM_FI_DEV_POWER_USAGE",
+    }
+    metric_results = await asyncio.gather(*(_query_prometheus_vector(name) for name in metric_names.values()))
+    values: dict[str, dict[str, Any]] = {}
+    for field, results in zip(metric_names, metric_results, strict=True):
+        for item in results:
+            metric = item.get("metric", {})
+            uuid = metric.get("UUID")
+            if not uuid:
+                continue
+            values.setdefault(uuid, {})[field] = _metric_value(item)
+            values[uuid]["driverVersion"] = metric.get("DCGM_FI_DRIVER_VERSION")
+            values[uuid]["model"] = metric.get("modelName")
+
+    telemetry: list[dict[str, Any]] = []
+    for node in nodes:
+        active_workloads = [item for item in node.get("gpuWorkloads", []) if item.get("active")]
+        logical_by_uuid: dict[str, dict[str, int]] = {}
+        for workload in active_workloads:
+            for allocation in workload.get("allocations", []):
+                uuid = allocation.get("uuid")
+                if not uuid:
+                    continue
+                logical = logical_by_uuid.setdefault(uuid, {"memoryMiB": 0, "corePercent": 0, "workloadCount": 0})
+                logical["memoryMiB"] += int(allocation.get("memoryMiB") or 0)
+                logical["corePercent"] += int(allocation.get("corePercent") or 0)
+                logical["workloadCount"] += 1
+        for device in node.get("gpuDevices", []):
+            uuid = device.get("uuid")
+            live = values.get(uuid, {})
+            telemetry.append(
+                {
+                    "node": node.get("node"),
+                    "uuid": uuid,
+                    "model": live.get("model") or device.get("model"),
+                    "driverVersion": live.get("driverVersion"),
+                    "health": device.get("health"),
+                    "memoryTotalMiB": device.get("memoryMiB"),
+                    "utilizationPercent": live.get("utilizationPercent"),
+                    "memoryUsedMiB": live.get("memoryUsedMiB"),
+                    "temperatureC": live.get("temperatureC"),
+                    "powerWatts": live.get("powerWatts"),
+                    "logicalAllocation": logical_by_uuid.get(uuid, {"memoryMiB": 0, "corePercent": 0, "workloadCount": 0}),
+                }
+            )
+    return telemetry
+
+
+def _component_snapshot(available: list[dict[str, Any]], desired: list[dict[str, Any]], stateful: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    available_by_key = {
+        (item.get("metric", {}).get("namespace"), item.get("metric", {}).get("deployment")): _metric_value(item)
+        for item in available
+    }
+    desired_by_key = {
+        (item.get("metric", {}).get("namespace"), item.get("metric", {}).get("deployment")): _metric_value(item)
+        for item in desired
+    }
+    ready_stateful = {
+        (item.get("metric", {}).get("namespace"), item.get("metric", {}).get("statefulset")): _metric_value(item)
+        for item in stateful
+    }
+    targets = [
+        ("Science API", "tenant-etri", "science-job-api", "deployment"),
+        ("Agent Runtime", "tenant-etri", "agent-runtime", "deployment"),
+        ("Resource Catalog", "science-ai-system", "resource-catalog", "deployment"),
+        ("Kubeflow API", "kubeflow", "ml-pipeline", "deployment"),
+        ("Metadata DB", "kubeflow", "mysql", "deployment"),
+        ("Artifact Store", "science-ai-mlops", "minio", "statefulset"),
+    ]
+    components = []
+    for label, namespace, name, kind in targets:
+        key = (namespace, name)
+        if kind == "statefulset":
+            ready = ready_stateful.get(key)
+            expected = 1.0
+        else:
+            ready = available_by_key.get(key)
+            expected = desired_by_key.get(key)
+        status = "ready" if ready is not None and expected is not None and ready >= expected and expected > 0 else "degraded" if ready is not None else "unknown"
+        components.append(
+            {
+                "name": label,
+                "namespace": namespace,
+                "workload": name,
+                "kind": kind,
+                "ready": int(ready) if ready is not None else None,
+                "desired": int(expected) if expected is not None else None,
+                "status": status,
+            }
+        )
+    return components
+
+
+async def _platform_health() -> dict[str, Any]:
+    available, desired, stateful = await asyncio.gather(
+        _query_prometheus_vector("kube_deployment_status_replicas_available"),
+        _query_prometheus_vector("kube_deployment_spec_replicas"),
+        _query_prometheus_vector("kube_statefulset_status_replicas_ready"),
+    )
+    components = _component_snapshot(available, desired, stateful)
+    return {
+        "components": components,
+        "readyCount": sum(item["status"] == "ready" for item in components),
+        "componentCount": len(components),
+    }
+
+
+def _condition_true(item: dict[str, Any], condition_type: str) -> bool:
+    return any(condition.get("type") == condition_type and condition.get("status") == "True" for condition in item.get("status", {}).get("conditions", []))
+
+
+def _queue_health(custom: CustomObjectsApi) -> dict[str, Any]:
+    queue_name = os.getenv("CLUSTER_QUEUE", "science-shared")
+    try:
+        payload = custom.list_cluster_custom_object("kueue.x-k8s.io", "v1beta1", "workloads")
+        workloads = payload.get("items", [])
+        queue = custom.get_cluster_custom_object("kueue.x-k8s.io", "v1beta1", "clusterqueues", queue_name)
+        active = any(condition.get("type") == "Active" and condition.get("status") == "True" for condition in queue.get("status", {}).get("conditions", []))
+        return {
+            "name": queue_name,
+            "status": "ready" if active else "degraded",
+            "pendingWorkloads": int(queue.get("status", {}).get("pendingWorkloads") or 0),
+            "admittedWorkloads": int(queue.get("status", {}).get("admittedWorkloads") or 0),
+            "observedWorkloads": len(workloads),
+            "finishedWorkloads": sum(_condition_true(item, "Finished") for item in workloads),
+        }
+    except Exception:
+        return {
+            "name": queue_name,
+            "status": "unknown",
+            "pendingWorkloads": None,
+            "admittedWorkloads": None,
+            "observedWorkloads": None,
+            "finishedWorkloads": None,
+        }
 
 
 async def _pressures(node: Any) -> dict[str, float | None]:
@@ -299,6 +497,30 @@ async def observe_topology() -> dict[str, Any]:
     }
 
 
+async def observe_operations() -> dict[str, Any]:
+    topology_payload = await observe_topology()
+    nodes = [node for site in topology_payload.get("sites", []) for node in site.get("nodes", [])]
+    _, custom = _kube()
+    gpu_devices, platform, queue = await asyncio.gather(
+        _gpu_telemetry(nodes),
+        _platform_health(),
+        asyncio.to_thread(_queue_health, custom),
+    )
+    return {
+        "generatedAt": datetime.now(UTC).isoformat(),
+        "dataSources": ["Kubernetes", "Kueue", "HAMi", "Prometheus", "DCGM", "Kubeflow"],
+        "fleet": _fleet_summary(nodes),
+        "gpu": {
+            "devices": gpu_devices,
+            "healthyDeviceCount": sum(device.get("health") is True for device in gpu_devices),
+            "deviceCount": len(gpu_devices),
+        },
+        "queue": queue,
+        "platform": platform,
+        "topology": topology_payload,
+    }
+
+
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
@@ -347,3 +569,9 @@ async def resources_summary() -> dict[str, Any]:
 async def topology() -> dict[str, Any]:
     CATALOG_REQUESTS.labels("topology").inc()
     return await observe_topology()
+
+
+@app.get("/v1/operations")
+async def operations() -> dict[str, Any]:
+    CATALOG_REQUESTS.labels("operations").inc()
+    return await observe_operations()

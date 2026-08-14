@@ -561,6 +561,11 @@ async def topology() -> dict[str, Any]:
     return await _catalog_payload("/v1/topology", "topology")
 
 
+@app.get("/v1/operations", dependencies=[Depends(authorize)])
+async def operations() -> dict[str, Any]:
+    return await _catalog_payload("/v1/operations", "operations")
+
+
 def _placement_for_job(topology_payload: dict[str, Any], job_id: str) -> dict[str, Any] | None:
     for site in topology_payload.get("sites", []):
         for node in site.get("nodes", []):

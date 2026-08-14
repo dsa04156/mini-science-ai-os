@@ -14,7 +14,12 @@ make portfolio-check
 
 ## 진행 순서
 
-### 0:00-1:00 — 제품 경계
+### 0:00-1:00 — 실제 장비 운영 화면과 제품 경계
+
+먼저 Science Workspace `개요`에서 5/5 Node, 2/2 Physical GPU, 6/6 Platform,
+Kueue Ready를 보여준다. 값이 실제 Kubernetes·Prometheus·DCGM에서 수집되므로
+수치가 변할 수 있다는 점을 먼저 말하고, `토폴로지`에서 같은 장비와 Workload
+배치를 교차 확인한다.
 
 ```bash
 sed -n '1,90p' docs/architecture.md

@@ -44,7 +44,7 @@ spec:
               /kaniko/executor
               --context=dir:///workspace/context
               --dockerfile=/workspace/context/Dockerfile
-              --destination=192.168.0.56:5000/mini-science-ai-os:0.3.2-topology
+              --destination=192.168.0.56:5000/mini-science-ai-os:0.3.4-showcase
               --insecure
               --skip-tls-verify
               --cache=false

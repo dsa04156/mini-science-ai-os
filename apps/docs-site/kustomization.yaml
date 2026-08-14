@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: science-ai-system
+resources:
+  - workload.yaml
+configMapGenerator:
+  - name: mini-science-ai-os-ko-site
+    files:
+      - index.html=site/index.html
+generatorOptions:
+  labels:
+    app.kubernetes.io/name: mini-science-ai-os-ko-site
+    app.kubernetes.io/part-of: mini-science-ai-os
+    science-ai.io/managed-by: mini-science-ai-os

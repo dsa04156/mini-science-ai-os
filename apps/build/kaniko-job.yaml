@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: science-image-builder
+  namespace: science-ai-build
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: science-image-builder
+  namespace: science-ai-build
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+    science-ai.io/build: "true"
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        science-ai.io/managed-by: mini-science-ai-os
+        science-ai.io/build: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: science-image-builder
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        environment: cloud
+        kubernetes.io/arch: amd64
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:v1.23.2-debug
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              # Kaniko unpacks image layers and must preserve file ownership;
+              # this is the smallest capability needed by this build step.
+              add: ["CHOWN", "DAC_OVERRIDE", "FOWNER"]
+            seccompProfile:
+              type: RuntimeDefault
+          command: ["/bin/sh", "-c"]
+          args:
+            - >-
+              mkdir -p /workspace/context;
+              tar -xzf /input/context.tar.gz -C /workspace/context;
+              /kaniko/executor
+              --context=dir:///workspace/context
+              --dockerfile=/workspace/context/Dockerfile
+              --destination=192.168.0.56:5000/mini-science-ai-os:0.3.1
+              --insecure
+              --skip-tls-verify
+              --cache=false
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 3Gi
+          volumeMounts:
+            - name: source
+              mountPath: /input
+              readOnly: true
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: source
+          configMap:
+            name: science-ai-source
+        - name: workspace
+          emptyDir:
+            sizeLimit: 8Gi

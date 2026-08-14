@@ -1,0 +1,280 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: science-job-api
+  labels:
+    app.kubernetes.io/name: science-job-api
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: science-job-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: science-job-api
+  labels:
+    app.kubernetes.io/name: science-job-api
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: science-job-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: science-job-api
+        science-ai.io/managed-by: mini-science-ai-os
+    spec:
+      serviceAccountName: science-job-api
+      nodeSelector:
+        environment: cloud
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: 192.168.0.56:5000/mini-science-ai-os:0.3.1
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "science_os.job_api:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: TENANT
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: TENANT
+            - name: TENANT_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: TENANT_NAMESPACE
+            - name: LOCAL_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: LOCAL_QUEUE
+            - name: TENANT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tenant-api-token
+                  key: token
+            - name: API_REQUIRE_TOKEN
+              value: "true"
+            - name: API_DOCS_ENABLED
+              value: "false"
+            - name: PLATFORM_VERSION
+              value: "0.3.1"
+            - name: PLATFORM_PROFILE
+              value: internal-production
+            - name: PORTAL_ACCESS_MODE
+              value: trusted-network
+            - name: PORTAL_SESSION_TTL_SECONDS
+              value: "28800"
+            - name: PORTAL_COOKIE_SECURE
+              value: "false"
+            - name: HAMI_COUNT_RESOURCE
+              value: nvidia.com/gpu
+            - name: HAMI_MEMORY_RESOURCE
+              value: nvidia.com/gpumem
+            - name: HAMI_CORE_RESOURCE
+              value: nvidia.com/gpucores
+            - name: ALLOWED_REGISTRIES
+              value: 192.168.0.56:5000,docker.io/nvidia,nvcr.io/nvidia
+            - name: KFP_ENDPOINT
+              value: http://ml-pipeline.kubeflow.svc.cluster.local:8888
+            - name: KFP_RUNNER_SERVICE_ACCOUNT
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: KFP_RUNNER_SERVICE_ACCOUNT
+            - name: PLATFORM_RUNTIME_IMAGE
+              value: 192.168.0.56:5000/mini-science-ai-os:0.3.1
+            - name: RESOURCE_CATALOG_URL
+              value: http://resource-catalog.science-ai-system.svc.cluster.local:8000
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: science-job-api
+  labels:
+    release: prometheus
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: science-job-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-runtime-mcp
+  labels:
+    app.kubernetes.io/name: agent-runtime
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: agent-runtime
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-runtime
+  labels:
+    app.kubernetes.io/name: agent-runtime
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-runtime
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-runtime
+        science-ai.io/managed-by: mini-science-ai-os
+    spec:
+      serviceAccountName: agent-runtime
+      automountServiceAccountToken: false
+      nodeSelector:
+        environment: cloud
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: 192.168.0.56:5000/mini-science-ai-os:0.3.1
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "science_os.mcp_server:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: TENANT
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: TENANT
+            - name: TENANT_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: tenant-settings
+                  key: TENANT_NAMESPACE
+            - name: TENANT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tenant-api-token
+                  key: token
+            - name: SCIENCE_JOB_API_URL
+              value: http://science-job-api:8000
+            - name: PLATFORM_VERSION
+              value: "0.3.1"
+            - name: RESOURCE_CATALOG_URL
+              value: http://resource-catalog.science-ai-system.svc.cluster.local:8000
+            - name: AUDIT_LOG_PATH
+              value: /tmp/audit.jsonl
+            - name: MCP_ALLOWED_HOSTS
+              value: localhost,localhost:8000,127.0.0.1,127.0.0.1:8000,agent-runtime-mcp,agent-runtime-mcp:8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agent-runtime-mcp
+  labels:
+    release: prometheus
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-runtime
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

@@ -1,0 +1,79 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mini-science-ai-os-alerts
+  namespace: science-ai-system
+  labels:
+    release: prometheus
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  groups:
+    - name: mini-science-ai-os.gpu
+      rules:
+        - alert: ScienceGpuNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true",label_gpu="on"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: GPU node is not Ready
+        - alert: ScienceGpuMemoryHigh
+          expr: (DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) > 0.9
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: GPU framebuffer usage is above 90 percent
+    - name: mini-science-ai-os.queue
+      rules:
+        - alert: ScienceKueueWorkloadLongPending
+          expr: kueue_pending_workloads > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kueue has workloads waiting longer than the MVP threshold
+        - alert: ScienceJobRepeatedFailure
+          expr: sum by (namespace, job_name) (kube_job_status_failed{namespace="tenant-etri"}) > 2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Science Job repeatedly failed
+    - name: mini-science-ai-os.services
+      rules:
+        - alert: ScienceKubeflowUnavailable
+          expr: min(kube_deployment_status_replicas_available{namespace="kubeflow",deployment=~"ml-pipeline|ml-pipeline-ui|metadata-grpc-deployment|mysql"}) < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubeflow Pipelines API, UI, metadata, or database is unavailable
+        - alert: ScienceMinioUnavailable
+          expr: kube_statefulset_status_replicas_ready{namespace="science-ai-mlops",statefulset="minio"} < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubeflow artifact MinIO is unavailable
+        - alert: ScienceMcpToolErrorsHigh
+          expr: sum(rate(science_mcp_tool_calls_total{result="error"}[5m])) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: MCP tool call error rate is high
+        - alert: SciencePolicyDenialsHigh
+          expr: sum(rate(science_job_api_rejections_total[15m])) > 0.2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Science API policy denials increased
+        - alert: SciencePersistentVolumeLow
+          expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes < 0.15
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: A project PVC has less than 15 percent free space

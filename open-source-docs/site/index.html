@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="mini-science-ai-os 0.3.1 공식 한국어 문서. 개념, 아키텍처, CPU·GPU 실습, MCP, 운영 경계와 검증 상태를 설명합니다.">
+  <meta name="theme-color" content="#f7f8f8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101918'/%3E%3Cpath d='M17 40V24h8l7 8 7-8h8v16h-7V32l-8 9-8-9v8z' fill='%235ad6c3'/%3E%3C/svg%3E">
+  <title>mini-science-ai-os Docs</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f8f8;
+      --sheet: #ffffff;
+      --sheet-inset: #f1f3f2;
+      --instrument: #101918;
+      --ink: #17201f;
+      --ink-soft: #4f5c5a;
+      --ink-faint: #76817f;
+      --line: rgba(23, 32, 31, 0.11);
+      --line-strong: rgba(23, 32, 31, 0.20);
+      --signal: #087f70;
+      --signal-strong: #05685d;
+      --signal-soft: #e0f4ef;
+      --healthy: #1c7c45;
+      --healthy-soft: #e5f5e9;
+      --caution: #9a6410;
+      --caution-soft: #fff3d9;
+      --danger: #b14343;
+      --code: #0e1716;
+      --code-ink: #e8f1ef;
+      --topbar: 3.75rem;
+      --left-rail: 16.5rem;
+      --right-rail: 13.5rem;
+      --reading: 48rem;
+      --radius-sm: 0.45rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --ease: cubic-bezier(0.23, 1, 0.32, 1);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #0d1312;
+      --sheet: #111a19;
+      --sheet-inset: #16201f;
+      --instrument: #ecf4f2;
+      --ink: #e7efed;
+      --ink-soft: #aebbb8;
+      --ink-faint: #7f8d8a;
+      --line: rgba(231, 239, 237, 0.10);
+      --line-strong: rgba(231, 239, 237, 0.19);
+      --signal: #5ad6c3;
+      --signal-strong: #82e3d4;
+      --signal-soft: #173b36;
+      --healthy: #72d596;
+      --healthy-soft: #173825;
+      --caution: #efbd68;
+      --caution-soft: #3b2d14;
+      --danger: #f08c8c;
+      --code: #080d0d;
+      --code-ink: #e8f1ef;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--topbar) + 1.5rem); }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 0.94rem;
+      line-height: 1.72;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      -webkit-font-smoothing: antialiased;
+    }
+    body.nav-open { overflow: hidden; }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: var(--signal); text-underline-offset: 0.18em; }
+    a:hover { color: var(--signal-strong); }
+    :focus-visible { outline: 0.18rem solid color-mix(in srgb, var(--signal), transparent 25%); outline-offset: 0.16rem; }
+
+    .skip-link {
+      position: fixed;
+      top: 0.5rem;
+      left: 0.75rem;
+      z-index: 100;
+      transform: translateY(-5rem);
+      padding: 0.65rem 0.9rem;
+      border-radius: var(--radius-sm);
+      background: var(--instrument);
+      color: var(--paper);
+      text-decoration: none;
+      transition: transform 160ms var(--ease);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .topbar {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 80;
+      height: var(--topbar);
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 91%, transparent);
+      backdrop-filter: blur(1rem);
+      -webkit-backdrop-filter: blur(1rem);
+    }
+    .topbar-inner {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0 1.25rem;
+    }
+    .menu-button, .icon-button {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--sheet);
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, transform 120ms ease;
+    }
+    .menu-button:hover, .icon-button:hover { background: var(--sheet-inset); color: var(--ink); }
+    .menu-button:active, .icon-button:active { transform: scale(0.97); }
+    .menu-button { display: none; }
+    .menu-lines, .menu-lines::before, .menu-lines::after {
+      width: 1rem;
+      height: 1px;
+      display: block;
+      background: currentColor;
+      content: "";
+    }
+    .menu-lines { position: relative; }
+    .menu-lines::before { position: absolute; top: -0.34rem; }
+    .menu-lines::after { position: absolute; top: 0.34rem; }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--ink);
+      font-size: 0.9rem;
+      font-weight: 720;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      width: 1.9rem;
+      height: 1.9rem;
+      display: grid;
+      place-items: center;
+      border-radius: 0.48rem;
+      background: var(--instrument);
+      color: var(--paper);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+    }
+    .version-badge {
+      padding: 0.2rem 0.45rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink-faint);
+      font: 600 0.65rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .top-links {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .top-link {
+      min-height: 2.35rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.72rem;
+      border-radius: var(--radius-sm);
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      font-weight: 610;
+      text-decoration: none;
+    }
+    .top-link:hover { background: var(--sheet-inset); color: var(--ink); }
+
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: var(--left-rail) minmax(0, 1fr) var(--right-rail);
+      padding-top: var(--topbar);
+    }
+    .sidebar {
+      position: fixed;
+      inset: var(--topbar) auto 0 0;
+      z-index: 60;
+      width: var(--left-rail);
+      overflow-y: auto;
+      padding: 1.15rem 1rem 2rem 1.25rem;
+      border-right: 1px solid var(--line);
+      background: var(--paper);
+      scrollbar-width: thin;
+    }
+    .search-wrap { position: relative; margin-bottom: 1.35rem; }
+    .search-label {
+      position: absolute;
+      top: 50%;
+      left: 0.75rem;
+      transform: translateY(-50%);
+      color: var(--ink-faint);
+      font-size: 0.82rem;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      height: 2.45rem;
+      padding: 0.5rem 2.2rem 0.5rem 2rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--sheet-inset);
+      color: var(--ink);
+      font-size: 0.78rem;
+    }
+    .search-input::placeholder { color: var(--ink-faint); }
+    .search-key {
+      position: absolute;
+      top: 50%;
+      right: 0.5rem;
+      transform: translateY(-50%);
+      min-width: 1.35rem;
+      padding: 0.08rem 0.3rem;
+      border: 1px solid var(--line);
+      border-radius: 0.28rem;
+      color: var(--ink-faint);
+      background: var(--sheet);
+      font: 600 0.62rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-align: center;
+    }
+    .nav-group { margin-top: 1.2rem; }
+    .nav-group:first-of-type { margin-top: 0; }
+    .nav-title {
+      margin: 0 0 0.38rem;
+      padding: 0 0.58rem;
+      color: var(--ink-faint);
+      font-size: 0.66rem;
+      font-weight: 720;
+      letter-spacing: 0.065em;
+      text-transform: uppercase;
+    }
+    .doc-nav { display: grid; gap: 0.08rem; }
+    .doc-nav a {
+      min-height: 2.15rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.42rem 0.58rem;
+      border-radius: var(--radius-sm);
+      color: var(--ink-soft);
+      font-size: 0.78rem;
+      font-weight: 520;
+      line-height: 1.35;
+      text-decoration: none;
+      transition: background 130ms ease, color 130ms ease;
+    }
+    .doc-nav a:hover { background: var(--sheet-inset); color: var(--ink); }
+    .doc-nav a[aria-current="true"] { background: var(--signal-soft); color: var(--signal-strong); font-weight: 680; }
+    .doc-nav a[hidden], .nav-group[hidden] { display: none; }
+    .nav-empty { display: none; padding: 0.7rem; color: var(--ink-faint); font-size: 0.76rem; }
+    .nav-empty.visible { display: block; }
+
+    .content {
+      grid-column: 2;
+      min-width: 0;
+      padding: 3.5rem clamp(2rem, 5vw, 5rem) 7rem;
+    }
+    .article { width: min(100%, var(--reading)); margin: 0 auto; }
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.6rem;
+      color: var(--ink-faint);
+      font-size: 0.72rem;
+      font-weight: 570;
+    }
+    .breadcrumbs a { color: inherit; text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--signal); }
+    .article-label {
+      margin: 0 0 0.65rem;
+      color: var(--signal);
+      font: 700 0.7rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { color: var(--ink); text-wrap: balance; }
+    h1 {
+      max-width: 18ch;
+      margin: 0 0 1.15rem;
+      font-size: clamp(2.45rem, 6vw, 4.25rem);
+      font-weight: 760;
+      line-height: 1.04;
+      letter-spacing: -0.058em;
+    }
+    .lede {
+      max-width: 44rem;
+      margin: 0 0 2.4rem;
+      color: var(--ink-soft);
+      font-size: clamp(1.02rem, 1.6vw, 1.16rem);
+      line-height: 1.7;
+      text-wrap: pretty;
+    }
+    h2 {
+      margin: 4.5rem 0 1.1rem;
+      padding-top: 0.25rem;
+      font-size: clamp(1.65rem, 3vw, 2.15rem);
+      font-weight: 730;
+      line-height: 1.18;
+      letter-spacing: -0.04em;
+    }
+    h3 {
+      margin: 2.5rem 0 0.75rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.35;
+      letter-spacing: -0.025em;
+    }
+    p { margin: 0.85rem 0; color: var(--ink-soft); text-wrap: pretty; }
+    strong { color: var(--ink); }
+    ul, ol { margin: 0.9rem 0 1.2rem; padding-left: 1.35rem; color: var(--ink-soft); }
+    li { margin: 0.45rem 0; padding-left: 0.15rem; }
+    code {
+      padding: 0.12rem 0.3rem;
+      border: 1px solid var(--line);
+      border-radius: 0.28rem;
+      background: var(--sheet-inset);
+      color: var(--ink);
+      font: 0.82em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .pipeline-rail {
+      position: relative;
+      margin: 2.2rem 0 3rem;
+      padding: 1.15rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--sheet);
+      overflow-x: auto;
+    }
+    .pipeline-caption {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      color: var(--ink-faint);
+      font: 650 0.67rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.045em;
+      text-transform: uppercase;
+    }
+    .pipeline-status { display: inline-flex; align-items: center; gap: 0.42rem; color: var(--healthy); }
+    .status-dot { width: 0.42rem; height: 0.42rem; border-radius: 50%; background: currentColor; }
+    .pipeline {
+      min-width: 41rem;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.45rem;
+    }
+    .pipeline-step {
+      position: relative;
+      min-height: 5.2rem;
+      padding: 0.7rem;
+      border-radius: var(--radius-sm);
+      background: var(--sheet-inset);
+    }
+    .pipeline-step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -0.42rem;
+      z-index: 2;
+      width: 0.34rem;
+      height: 0.34rem;
+      border-top: 1px solid var(--signal);
+      border-right: 1px solid var(--signal);
+      transform: translateY(-50%) rotate(45deg);
+    }
+    .pipeline-step:last-child::after { display: none; }
+    .pipeline-step span { display: block; color: var(--signal); font: 700 0.62rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pipeline-step strong { display: block; margin-top: 0.95rem; font-size: 0.73rem; line-height: 1.35; }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin: 1.6rem 0 2rem;
+    }
+    .quick-card {
+      min-height: 9rem;
+      padding: 1.15rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--sheet);
+      text-decoration: none;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+    .quick-card:hover { border-color: var(--line-strong); background: var(--sheet-inset); transform: translateY(-1px); }
+    .quick-card:active { transform: scale(0.99); }
+    .quick-card small { display: block; margin-bottom: 1.4rem; color: var(--signal); font: 700 0.65rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .quick-card strong { display: block; margin-bottom: 0.35rem; font-size: 0.95rem; }
+    .quick-card span { display: block; color: var(--ink-soft); font-size: 0.78rem; line-height: 1.55; }
+
+    .callout {
+      margin: 1.35rem 0;
+      padding: 1rem 1.1rem;
+      border-left: 0.2rem solid var(--signal);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      background: var(--signal-soft);
+    }
+    .callout.warning { border-left-color: var(--caution); background: var(--caution-soft); }
+    .callout strong { display: block; margin-bottom: 0.25rem; font-size: 0.82rem; }
+    .callout p { margin: 0; color: var(--ink-soft); font-size: 0.82rem; }
+
+    .story {
+      margin: 1.4rem 0;
+      padding: 1.4rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--sheet);
+    }
+    .story-title { margin: 0 0 1rem; color: var(--signal); font-size: 0.76rem; font-weight: 750; }
+    .cast {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      margin: 0;
+    }
+    .cast div { padding: 0.75rem 0; border-top: 1px solid var(--line); }
+    .cast div:nth-child(odd) { padding-right: 1rem; }
+    .cast div:nth-child(even) { padding-left: 1rem; border-left: 1px solid var(--line); }
+    .cast dt { color: var(--ink); font-size: 0.8rem; font-weight: 680; }
+    .cast dd { margin: 0.18rem 0 0; color: var(--ink-faint); font-size: 0.72rem; }
+
+    .table-wrap { margin: 1.25rem 0; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-md); }
+    table { width: 100%; border-collapse: collapse; background: var(--sheet); font-size: 0.78rem; }
+    th, td { padding: 0.8rem 0.9rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: var(--sheet-inset); color: var(--ink); font-size: 0.7rem; font-weight: 720; }
+    td { color: var(--ink-soft); }
+
+    .code-block {
+      margin: 1.25rem 0;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius-md);
+      background: var(--code);
+      color: var(--code-ink);
+    }
+    .code-head {
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      padding: 0.45rem 0.55rem 0.45rem 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #8fa09d;
+      font: 650 0.66rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .copy-button {
+      margin-left: auto;
+      min-height: 1.8rem;
+      padding: 0.28rem 0.55rem;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 0.35rem;
+      background: rgba(255,255,255,.06);
+      color: #cbd7d4;
+      cursor: pointer;
+      font-size: 0.64rem;
+      transition: background 130ms ease, transform 110ms ease;
+    }
+    .copy-button:hover { background: rgba(255,255,255,.11); }
+    .copy-button:active { transform: scale(0.97); }
+    pre { margin: 0; padding: 1rem; overflow-x: auto; color: var(--code-ink); font: 0.76rem/1.75 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    pre code { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
+
+    .status-list { margin: 1.2rem 0; border-top: 1px solid var(--line); }
+    .status-row {
+      display: grid;
+      grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 1.3fr) auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .status-row strong { font-size: 0.8rem; }
+    .status-row span:nth-child(2) { color: var(--ink-soft); font-size: 0.76rem; }
+    .status-pill {
+      min-width: 4.5rem;
+      padding: 0.22rem 0.5rem;
+      border-radius: 999px;
+      background: var(--healthy-soft);
+      color: var(--healthy);
+      font: 720 0.62rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-align: center;
+    }
+    .status-pill.partial { background: var(--caution-soft); color: var(--caution); }
+
+    details { margin: 0.7rem 0; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--sheet); }
+    summary { padding: 0.9rem 1rem; color: var(--ink); font-size: 0.82rem; font-weight: 670; cursor: pointer; }
+    details p { padding: 0 1rem 1rem; margin: 0; font-size: 0.8rem; }
+
+    .page-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 4.5rem;
+      padding-top: 1.3rem;
+      border-top: 1px solid var(--line);
+    }
+    .page-nav a {
+      min-height: 5rem;
+      padding: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--sheet);
+      text-decoration: none;
+    }
+    .page-nav a:last-child { text-align: right; }
+    .page-nav small { display: block; color: var(--ink-faint); font-size: 0.64rem; }
+    .page-nav strong { display: block; margin-top: 0.4rem; color: var(--ink); font-size: 0.8rem; }
+
+    .toc {
+      position: fixed;
+      inset: var(--topbar) 0 0 auto;
+      width: var(--right-rail);
+      overflow-y: auto;
+      padding: 3rem 1.1rem 2rem 0.3rem;
+    }
+    .toc-title { margin: 0 0 0.7rem; color: var(--ink); font-size: 0.7rem; font-weight: 720; }
+    .toc nav { display: grid; gap: 0.42rem; border-left: 1px solid var(--line); }
+    .toc a {
+      margin-left: -1px;
+      padding-left: 0.75rem;
+      border-left: 1px solid transparent;
+      color: var(--ink-faint);
+      font-size: 0.69rem;
+      line-height: 1.4;
+      text-decoration: none;
+    }
+    .toc a:hover { color: var(--ink); }
+    .toc a[aria-current="true"] { border-left-color: var(--signal); color: var(--signal); font-weight: 660; }
+    .toc-note { margin-top: 1.5rem; padding: 0.75rem; border-radius: var(--radius-sm); background: var(--sheet-inset); color: var(--ink-faint); font-size: 0.66rem; line-height: 1.55; }
+    .mobile-shade { display: none; }
+
+    @media (max-width: 1120px) {
+      :root { --right-rail: 0rem; }
+      .layout { grid-template-columns: var(--left-rail) minmax(0, 1fr); }
+      .toc { display: none; }
+    }
+
+    @media (max-width: 760px) {
+      :root { --left-rail: 17rem; }
+      .menu-button { display: inline-grid; }
+      .version-badge, .top-link.optional { display: none; }
+      .topbar-inner { padding-inline: 0.75rem; }
+      .layout { display: block; }
+      .sidebar {
+        transform: translateX(-100%);
+        box-shadow: 1.2rem 0 3rem rgba(0,0,0,.14);
+        transition: transform 220ms var(--ease);
+      }
+      body.nav-open .sidebar { transform: translateX(0); }
+      .mobile-shade {
+        position: fixed;
+        inset: var(--topbar) 0 0;
+        z-index: 50;
+        display: block;
+        border: 0;
+        background: rgba(0,0,0,.42);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+      }
+      body.nav-open .mobile-shade { opacity: 1; pointer-events: auto; }
+      .content { padding: 2.5rem 1.1rem 5rem; }
+      .quick-grid, .cast, .page-nav { grid-template-columns: 1fr; }
+      .cast div:nth-child(even) { padding-left: 0; border-left: 0; }
+      .cast div:nth-child(odd) { padding-right: 0; }
+      .status-row { grid-template-columns: 1fr auto; gap: 0.25rem 0.8rem; }
+      .status-row span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+      .page-nav a:last-child { text-align: left; }
+    }
+
+    @media (max-width: 460px) {
+      .brand-name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; }
+      .top-link { display: none; }
+      h1 { font-size: 2.55rem; }
+      .content { padding-inline: 0.9rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+    }
+    @media (prefers-contrast: more) {
+      :root { --line: rgba(23,32,31,.32); --line-strong: rgba(23,32,31,.55); }
+      html[data-theme="dark"] { --line: rgba(231,239,237,.34); --line-strong: rgba(231,239,237,.55); }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="menu-button" type="button" aria-label="문서 메뉴 열기" aria-expanded="false" aria-controls="sidebar"><span class="menu-lines" aria-hidden="true"></span></button>
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">ms</span>
+        <span class="brand-name">mini-science-ai-os Docs</span>
+      </a>
+      <span class="version-badge">v0.3.1</span>
+      <nav class="top-links" aria-label="제품 바로가기">
+        <a class="top-link optional" href="/">소개</a>
+        <a class="top-link" href="http://science-workspace.192.168.0.56.nip.io/portal/">Workspace ↗</a>
+        <button class="icon-button" type="button" data-theme-toggle aria-label="어두운 화면으로 전환">◐</button>
+      </nav>
+    </div>
+  </header>
+
+  <button class="mobile-shade" type="button" aria-label="문서 메뉴 닫기"></button>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="문서 탐색">
+      <div class="search-wrap">
+        <span class="search-label" aria-hidden="true">⌕</span>
+        <input class="search-input" type="search" aria-label="문서 목차 검색" placeholder="문서 검색">
+        <span class="search-key" aria-hidden="true">/</span>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-title">시작하기</p>
+        <nav class="doc-nav">
+          <a href="#overview" aria-current="true">프로젝트 소개</a>
+          <a href="#playground">연구 놀이터 이야기</a>
+          <a href="#how-it-works">작동 방식</a>
+          <a href="#quickstart">빠른 시작</a>
+        </nav>
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">핵심 개념</p>
+        <nav class="doc-nav">
+          <a href="#components">구성요소</a>
+          <a href="#cpu-gpu">CPU와 GPU</a>
+          <a href="#queue">Queue와 Quota</a>
+          <a href="#results">Metric과 Artifact</a>
+          <a href="#agent">MCP Agent</a>
+        </nav>
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">운영과 신뢰</p>
+        <nav class="doc-nav">
+          <a href="#status">현재 구현 상태</a>
+          <a href="#security">보안 경계</a>
+          <a href="#limitations">알려진 한계</a>
+          <a href="#operations">운영 명령</a>
+        </nav>
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">참조</p>
+        <nav class="doc-nav">
+          <a href="#glossary">용어 사전</a>
+          <a href="#faq">자주 묻는 질문</a>
+        </nav>
+      </div>
+      <p class="nav-empty" role="status">일치하는 문서가 없습니다.</p>
+    </aside>
+
+    <main class="content" id="main">
+      <article class="article">
+        <div class="breadcrumbs"><a href="/">mini-science-ai-os</a><span>/</span><span>Docs</span><span>/</span><span>Overview</span></div>
+        <p class="article-label">ETRI Internal · Documentation</p>
+        <h1 id="overview">연구 실험을 부탁하면, 실행부터 증거까지.</h1>
+        <p class="lede">mini-science-ai-os는 연구자가 복잡한 Kubernetes 명령을 직접 다루지 않고도 CPU·GPU 실험을 제출하고, Queue 상태와 Kubeflow 실행, Metric과 Artifact를 한 흐름으로 확인하게 해 주는 ETRI 내부 연구 플랫폼입니다.</p>
+
+        <div class="pipeline-rail" aria-label="Science Job 실행 파이프라인">
+          <div class="pipeline-caption"><span>Request-to-evidence pipeline</span><span class="pipeline-status"><span class="status-dot"></span>INTERNAL MVP READY</span></div>
+          <div class="pipeline">
+            <div class="pipeline-step"><span>01</span><strong>요청<br>Workspace</strong></div>
+            <div class="pipeline-step"><span>02</span><strong>검증<br>Science API</strong></div>
+            <div class="pipeline-step"><span>03</span><strong>기록<br>Kubeflow</strong></div>
+            <div class="pipeline-step"><span>04</span><strong>입장<br>Kueue</strong></div>
+            <div class="pipeline-step"><span>05</span><strong>실행<br>Scheduler</strong></div>
+            <div class="pipeline-step"><span>06</span><strong>증거<br>Metric·Artifact</strong></div>
+          </div>
+        </div>
+
+        <div class="quick-grid" aria-label="빠른 문서 링크">
+          <a class="quick-card" href="#playground"><small>01 · CONCEPT</small><strong>처음 보는 분</strong><span>놀이터 비유로 전체 구조를 먼저 이해합니다.</span></a>
+          <a class="quick-card" href="#quickstart"><small>02 · TUTORIAL</small><strong>직접 실행할 분</strong><span>상태 확인부터 CPU·GPU Job까지 순서대로 진행합니다.</span></a>
+          <a class="quick-card" href="#security"><small>03 · TRUST</small><strong>검토하는 분</strong><span>권한, Tenant 경계, Secret과 미검증 영역을 확인합니다.</span></a>
+          <a class="quick-card" href="#operations"><small>04 · OPERATE</small><strong>운영하는 분</strong><span>안전한 조회·검증 명령과 정리 순서를 확인합니다.</span></a>
+        </div>
+
+        <div class="callout">
+          <strong>현재 제품 범위</strong>
+          <p>단일 Kubernetes 클러스터의 tenant-etri 전용 내부 MVP입니다. 실제 Federation, SLURM·Cloud 실행, 중앙 SSO와 외부 TLS 서비스는 아직 범위 밖입니다.</p>
+        </div>
+
+        <h2 id="playground">연구 놀이터 이야기</h2>
+        <p>연구자 민지가 인공지능 실험을 하고 싶다고 생각해 봅시다. 원래는 빈 컴퓨터를 찾고, GPU 사용자를 확인하고, 실행 명령과 저장 위치까지 직접 관리해야 합니다. Science AI OS는 이 일을 여러 전문 도우미에게 나눠 줍니다.</p>
+
+        <div class="story">
+          <p class="story-title">이야기 속 역할과 실제 기술</p>
+          <dl class="cast">
+            <div><dt>안내 화면</dt><dd>Science Workspace</dd></div>
+            <div><dt>접수 선생님</dt><dd>Science Job API</dd></div>
+            <div><dt>번호표 기계</dt><dd>Kueue</dd></div>
+            <div><dt>자리 배정 선생님</dt><dd>Kubernetes Scheduler</dd></div>
+            <div><dt>GPU 나누기 선생님</dt><dd>HAMi</dd></div>
+            <div><dt>실험 공책</dt><dd>Kubeflow Pipelines</dd></div>
+            <div><dt>작품 보관 창고</dt><dd>MinIO</dd></div>
+            <div><dt>도우미 로봇</dt><dd>MCP Agent Runtime</dd></div>
+          </dl>
+        </div>
+
+        <p>연구자는 “이 실험을 해 주세요”라고 신청합니다. 접수 선생님은 위험한 부탁이 아닌지 검사하고, 번호표 기계는 자원이 생길 때까지 순서를 지킵니다. 자리 배정 선생님이 컴퓨터를 고르면 프로그램이 실행되고, 실험 공책과 창고가 숫자 결과와 파일을 보관합니다.</p>
+
+        <h2 id="how-it-works">버튼을 누른 뒤 일어나는 일</h2>
+        <ol>
+          <li><strong>Workspace</strong>에서 프로젝트, 이미지, 명령, CPU·Memory·GPU를 입력합니다.</li>
+          <li><strong>Science Job API</strong>가 Tenant, Registry, 자원 상한과 위험한 입력을 검사합니다.</li>
+          <li><strong>Kubeflow Pipelines</strong>가 Run과 실행 이력을 만듭니다.</li>
+          <li><strong>Kueue</strong>가 Quota를 확인하고 실행 가능 여부를 결정합니다.</li>
+          <li><strong>Scheduler와 HAMi</strong>가 Node와 논리 GPU 몫을 배정합니다.</li>
+          <li><strong>Kubernetes Job</strong>이 제한된 권한으로 Container를 실행합니다.</li>
+          <li><strong>MySQL·Metadata와 MinIO</strong>가 실행 색인과 Artifact를 보관합니다.</li>
+          <li>사용자는 Workspace에서 상태, Metric과 Artifact를 다시 확인합니다.</li>
+        </ol>
+
+        <div class="callout warning">
+          <strong>Pending은 항상 실패가 아닙니다</strong>
+          <p>Quota나 자원이 부족하면 Kueue가 작업을 버리지 않고 기다리게 합니다. Workload의 Condition에서 정확한 대기 사유를 확인할 수 있습니다.</p>
+        </div>
+
+        <h2 id="quickstart">빠른 시작</h2>
+        <p>처음에는 배포 명령을 실행하지 말고 현재 제품 상태부터 확인합니다.</p>
+
+        <div class="code-block">
+          <div class="code-head"><span>bash · read-only status</span><button class="copy-button" type="button" data-copy>복사</button></div>
+          <pre><code>cd /home/jinuk/codex-work/platform
+make status
+kubectl get deploy,pod,svc,ingress,pdb -n tenant-etri</code></pre>
+        </div>
+
+        <p>출력 마지막에 <code>INTERNAL_PRODUCT=READY</code>가 보이고 Science Job API와 Agent Runtime이 각각 2/2 Ready여야 합니다.</p>
+
+        <h3>첫 CPU Job</h3>
+        <p><a href="http://science-workspace.192.168.0.56.nip.io/portal/">Science Workspace</a>의 새 작업에서 다음 값을 사용합니다.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>필드</th><th>값</th><th>의미</th></tr></thead>
+            <tbody>
+              <tr><td>프로젝트</td><td>physical-ai</td><td>실험 묶음</td></tr>
+              <tr><td>실험 이름</td><td>my-first-cpu</td><td>Run을 찾는 이름</td></tr>
+              <tr><td>CPU / Memory</td><td>500m / 512Mi</td><td>요청 자원</td></tr>
+              <tr><td>GPU 사용</td><td>끔</td><td>일반 CPU 경로</td></tr>
+              <tr><td>Command</td><td>python -m science_os.demo --mode cpu</td><td>데모 실행</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>성공하면 accuracy 약 0.875와 loss 약 0.125가 표시됩니다. 자세한 전체 실습은 저장소의 <strong>GUIDEBOOK.md</strong>를 따릅니다.</p>
+
+        <h2 id="components">구성요소</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>구성요소</th><th>책임</th><th>보장하지 않는 것</th></tr></thead>
+            <tbody>
+              <tr><td>Science Job API</td><td>입력·Registry·자원·Tenant 검증</td><td>Cluster Admin, 임의 PodSpec</td></tr>
+              <tr><td>Kubeflow 2.17.0</td><td>Run·Metric·Artifact 이력</td><td>Queue Quota, GPU 성능 격리</td></tr>
+              <tr><td>Kueue 0.17.3</td><td>Quota와 Admission</td><td>실행 Node 선택</td></tr>
+              <tr><td>Scheduler·HAMi</td><td>Node와 논리 GPU 배정</td><td>물리 처리량 QoS</td></tr>
+              <tr><td>MinIO</td><td>KFP Artifact 보관</td><td>원격 DR</td></tr>
+              <tr><td>MCP Runtime</td><td>정해진 Science Tool과 Audit</td><td>Kubernetes 직접 호출</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="cpu-gpu">CPU와 GPU</h2>
+        <p><strong>CPU</strong>는 여러 종류의 일반 계산을 잘하는 일꾼입니다. <strong>GPU</strong>는 비슷한 계산을 한꺼번에 많이 처리하는 데 강합니다.</p>
+        <p>HAMi는 한 물리 GPU를 여러 Job이 논리적으로 공유하도록 Memory와 Core 비율을 표시합니다. 예를 들어 GPU Memory 1024MiB와 Core 10%를 요청할 수 있습니다.</p>
+        <div class="callout warning">
+          <strong>논리 할당과 성능 보장은 다릅니다</strong>
+          <p>HAMi Annotation이 논리 몫을 보여 주더라도 실제 처리량과 메모리 대역폭이 완전히 격리된다는 뜻은 아닙니다. DCGM Metric과 함께 관찰해야 합니다.</p>
+        </div>
+
+        <h2 id="queue">Queue와 Quota</h2>
+        <p><strong>Queue</strong>는 실행 차례를 기다리는 줄이고, <strong>Quota</strong>는 한 팀이 사용할 수 있는 최대 자원입니다. tenant-etri의 LocalQueue는 공용 science-shared ClusterQueue에 연결됩니다.</p>
+        <div class="code-block">
+          <div class="code-head"><span>bash · Kueue state</span><button class="copy-button" type="button" data-copy>복사</button></div>
+          <pre><code>kubectl get localqueue -n tenant-etri tenant-etri
+kubectl get clusterqueue science-shared
+kubectl get workloads -n tenant-etri</code></pre>
+        </div>
+
+        <h2 id="results">Metric과 Artifact</h2>
+        <p><strong>Metric</strong>은 accuracy, loss, duration처럼 숫자로 비교하는 성적표입니다. <strong>Artifact</strong>는 모델, 그래프, 결과 표처럼 파일로 남는 작품입니다.</p>
+        <p>Kubeflow가 Run과 Parameter·Metric을 연결하고, MinIO가 결과 파일을 보관합니다. 사용자는 Workspace의 Job 상세 또는 Kubeflow UI에서 이를 확인합니다.</p>
+
+        <h2 id="agent">MCP Agent</h2>
+        <p>MCP Runtime은 사람 대신 Science Job API에 부탁하는 제한된 도우미입니다. 자율 Cluster 관리자가 아닙니다.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>허용</th><th>거부</th></tr></thead>
+            <tbody>
+              <tr><td>자원 조회, 자기 Job 제출·상태·Metric·취소</td><td>Kubernetes 관리자 권한</td></tr>
+              <tr><td>ETRI 실험 Run 조회</td><td>Secret 읽기</td></tr>
+              <tr><td>Science API를 통한 제한된 Side Effect</td><td>다른 Namespace Job 생성·취소</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="status">현재 구현 상태</h2>
+        <div class="status-list">
+          <div class="status-row"><strong>Science API / MCP</strong><span>각 2 Replica, PDB와 Readiness</span><span class="status-pill">READY</span></div>
+          <div class="status-row"><strong>CPU·GPU Pipeline</strong><span>KFP Run, Metric·Artifact, HAMi 논리 할당</span><span class="status-pill">PASS</span></div>
+          <div class="status-row"><strong>Kueue Quota</strong><span>입장과 부족 사유 대기 검증</span><span class="status-pill">PASS</span></div>
+          <div class="status-row"><strong>NetworkPolicy</strong><span>Manifest 존재, Flannel-only Enforcement 미검증</span><span class="status-pill partial">PARTIAL</span></div>
+          <div class="status-row"><strong>Grafana</strong><span>Rule 적용, Dashboard UI Import 미검증</span><span class="status-pill partial">PARTIAL</span></div>
+          <div class="status-row"><strong>Argo CD</strong><span>Manifest 존재, 게시 Git URL 부재</span><span class="status-pill partial">BLOCKED</span></div>
+        </div>
+
+        <h2 id="security">보안 경계</h2>
+        <ul>
+          <li>Tenant, Namespace, ServiceAccount와 Queue는 서버 설정으로 <strong>ETRI에 고정</strong>됩니다.</li>
+          <li>Portal은 내부망의 ETRI 고정 HttpOnly Session을 사용하고, 직접 API와 MCP는 Token을 요구합니다.</li>
+          <li>Job은 non-root, read-only root filesystem, RuntimeDefault seccomp와 Capability drop ALL을 적용합니다.</li>
+          <li>Secret은 Kubernetes Secret에 두며 Portal HTML과 Git에 포함하지 않습니다.</li>
+          <li>privileged, hostPath, hostPID, hostNetwork와 임의 ServiceAccount 입력을 받지 않습니다.</li>
+        </ul>
+
+        <h2 id="limitations">알려진 한계</h2>
+        <div class="callout warning">
+          <strong>내부망 전용</strong>
+          <p>현재 TLS와 개인별 OIDC 로그인이 없습니다. 승인된 내부망 밖으로 공개하면 안 됩니다.</p>
+        </div>
+        <ul>
+          <li>실제 다기관 Federation과 Site Scheduling</li>
+          <li>실제 SLURM 제출과 Cloud Adapter</li>
+          <li>개인별 Agent Identity와 승인 Gate</li>
+          <li>Flannel 환경의 NetworkPolicy Enforcement 증명</li>
+          <li>원격 Backup과 Disaster Recovery</li>
+          <li>GPU 물리 성능 격리 보장</li>
+        </ul>
+
+        <h2 id="operations">운영 명령</h2>
+        <p>조회와 검증부터 시작합니다. <code>bootstrap</code>, <code>productize</code>, <code>etri-only</code>, <code>rollback</code>은 Cluster 상태를 바꾸므로 초급 실습에서 실행하지 않습니다.</p>
+        <div class="code-block">
+          <div class="code-head"><span>bash · safe first checks</span><button class="copy-button" type="button" data-copy>복사</button></div>
+          <pre><code>cd /home/jinuk/codex-work/platform
+make status
+kubectl get deploy,pod,svc -n tenant-etri
+kubectl get deploy -n kubeflow
+kubectl get sts,pod,pvc -n science-ai-mlops</code></pre>
+        </div>
+        <p>전체 사용자 실습은 <strong>GUIDEBOOK.md</strong>, 아주 쉬운 설명 원문은 <strong>EASY_EXPLAINER.md</strong>, 운영 절차는 <strong>docs/runbook.md</strong>에 있습니다.</p>
+
+        <h2 id="glossary">용어 사전</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>용어</th><th>쉬운 뜻</th></tr></thead>
+            <tbody>
+              <tr><td>Cluster</td><td>여러 컴퓨터를 한 팀처럼 묶은 것</td></tr>
+              <tr><td>Node</td><td>Cluster 안의 컴퓨터 한 대</td></tr>
+              <tr><td>Pod</td><td>프로그램 상자를 실제로 여는 작은 실행 공간</td></tr>
+              <tr><td>Job</td><td>끝이 있는 한 번의 작업</td></tr>
+              <tr><td>Container Image</td><td>프로그램과 준비물을 담은 밀봉 상자</td></tr>
+              <tr><td>Namespace</td><td>팀별로 나눈 교실</td></tr>
+              <tr><td>Pipeline / Run</td><td>실험 순서 / 그 순서를 한 번 실행한 기록</td></tr>
+              <tr><td>Queue / Quota</td><td>기다리는 줄 / 사용할 수 있는 최대 양</td></tr>
+              <tr><td>Metric / Artifact</td><td>숫자 성적표 / 파일로 남는 결과물</td></tr>
+              <tr><td>MVP</td><td>중요 기능을 실제로 써 볼 수 있게 만든 첫 제품</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="faq">자주 묻는 질문</h2>
+        <details>
+          <summary>이것은 단순 화면 모형인가요?</summary>
+          <p>아닙니다. 현재 내부 Kubernetes Cluster에서 API, MCP, KFP, Kueue와 MinIO가 실제로 실행 중인 단일 Tenant MVP입니다.</p>
+        </details>
+        <details>
+          <summary>Pending이면 실패한 건가요?</summary>
+          <p>아닐 수 있습니다. Kueue가 Quota나 자원을 기다리게 하는 정상 상태일 수 있으므로 Workload Condition을 확인합니다.</p>
+        </details>
+        <details>
+          <summary>GPU 10%면 성능도 정확히 10%인가요?</summary>
+          <p>아닙니다. HAMi의 Core와 Memory 값은 논리 할당입니다. 실제 처리량과 대역폭 격리는 별도 검증이 필요합니다.</p>
+        </details>
+        <details>
+          <summary>인터넷에 공개해도 되나요?</summary>
+          <p>안 됩니다. 현재 TLS와 개인별 OIDC 인증이 없는 trusted-network 내부 제품입니다.</p>
+        </details>
+
+        <nav class="page-nav" aria-label="다음 문서">
+          <a href="/"><small>이전</small><strong>제품 소개</strong></a>
+          <a href="http://science-workspace.192.168.0.56.nip.io/portal/"><small>다음</small><strong>Science Workspace 열기 ↗</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <aside class="toc" aria-label="현재 페이지 목차">
+      <p class="toc-title">이 페이지에서</p>
+      <nav>
+        <a href="#overview" aria-current="true">개요</a>
+        <a href="#playground">연구 놀이터</a>
+        <a href="#how-it-works">작동 방식</a>
+        <a href="#quickstart">빠른 시작</a>
+        <a href="#components">구성요소</a>
+        <a href="#status">구현 상태</a>
+        <a href="#security">보안 경계</a>
+        <a href="#limitations">알려진 한계</a>
+        <a href="#glossary">용어 사전</a>
+      </nav>
+      <p class="toc-note"><strong>문서 원칙</strong><br>구현과 검증을 분리하고, 확인하지 못한 항목은 완료로 표시하지 않습니다.</p>
+    </aside>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const body = document.body;
+    const menuButton = document.querySelector('.menu-button');
+    const shade = document.querySelector('.mobile-shade');
+    const sidebar = document.querySelector('.sidebar');
+    const search = document.querySelector('.search-input');
+    const themeButton = document.querySelector('[data-theme-toggle]');
+
+    const closeNav = () => {
+      body.classList.remove('nav-open');
+      menuButton.setAttribute('aria-expanded', 'false');
+      menuButton.setAttribute('aria-label', '문서 메뉴 열기');
+    };
+    const openNav = () => {
+      body.classList.add('nav-open');
+      menuButton.setAttribute('aria-expanded', 'true');
+      menuButton.setAttribute('aria-label', '문서 메뉴 닫기');
+    };
+    menuButton.addEventListener('click', () => body.classList.contains('nav-open') ? closeNav() : openNav());
+    shade.addEventListener('click', closeNav);
+    sidebar.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeNav));
+
+    const preferredTheme = localStorage.getItem('mini-science-docs-theme');
+    if (preferredTheme === 'dark' || (!preferredTheme && matchMedia('(prefers-color-scheme: dark)').matches)) {
+      root.dataset.theme = 'dark';
+    }
+    const updateThemeLabel = () => {
+      const isDark = root.dataset.theme === 'dark';
+      themeButton.setAttribute('aria-label', isDark ? '밝은 화면으로 전환' : '어두운 화면으로 전환');
+      themeButton.textContent = isDark ? '☀' : '◐';
+    };
+    updateThemeLabel();
+    themeButton.addEventListener('click', () => {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('mini-science-docs-theme', root.dataset.theme);
+      updateThemeLabel();
+    });
+
+    const navGroups = Array.from(document.querySelectorAll('.nav-group'));
+    const navEmpty = document.querySelector('.nav-empty');
+    const filterNav = () => {
+      const query = search.value.trim().toLocaleLowerCase('ko');
+      let visibleCount = 0;
+      navGroups.forEach((group) => {
+        const links = Array.from(group.querySelectorAll('a'));
+        let groupCount = 0;
+        links.forEach((link) => {
+          const matches = !query || link.textContent.toLocaleLowerCase('ko').includes(query);
+          link.hidden = !matches;
+          if (matches) groupCount += 1;
+        });
+        group.hidden = groupCount === 0;
+        visibleCount += groupCount;
+      });
+      navEmpty.classList.toggle('visible', visibleCount === 0);
+    };
+    search.addEventListener('input', filterNav);
+
+    document.addEventListener('keydown', (event) => {
+      const target = event.target;
+      const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+      if (event.key === '/' && !typing) {
+        event.preventDefault();
+        if (innerWidth <= 760) openNav();
+        search.focus();
+      }
+      if (event.key === 'Escape') {
+        if (search.value) {
+          search.value = '';
+          filterNav();
+          search.focus();
+        } else {
+          closeNav();
+        }
+      }
+    });
+
+    const allSectionLinks = Array.from(document.querySelectorAll('.doc-nav a, .toc a'));
+    const observedSections = Array.from(document.querySelectorAll('main [id]')).filter((section) =>
+      allSectionLinks.some((link) => link.hash === '#' + section.id)
+    );
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        allSectionLinks.forEach((link) => {
+          link.setAttribute('aria-current', String(link.hash === '#' + entry.target.id));
+        });
+      });
+    }, { rootMargin: '-18% 0px -72%', threshold: 0 });
+    observedSections.forEach((section) => sectionObserver.observe(section));
+
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code = button.closest('.code-block').querySelector('code').textContent;
+        try {
+          await navigator.clipboard.writeText(code);
+          button.textContent = '복사됨';
+        } catch {
+          button.textContent = '복사 실패';
+        }
+        setTimeout(() => { button.textContent = '복사'; }, 1400);
+      });
+    });
+
+    addEventListener('resize', () => {
+      if (innerWidth > 760) closeNav();
+    });
+  </script>
+</body>
+</html>

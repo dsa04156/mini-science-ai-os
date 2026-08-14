@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: science-ai-system
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+    science-ai.io/system: catalog
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+

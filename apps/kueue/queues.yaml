@@ -1,0 +1,111 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: science-low
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 100
+globalDefault: false
+description: Low priority Science Job.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: science-normal
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 500
+globalDefault: false
+description: Normal priority Science Job.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: science-high
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 1000
+globalDefault: false
+description: High priority Science Job.
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: science-low
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 100
+description: Low priority Science Workload.
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: science-normal
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 500
+description: Normal priority Science Workload.
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: science-high
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+value: 1000
+description: High priority Science Workload.
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: science-cloud
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  nodeLabels:
+    environment: cloud
+    kubernetes.io/arch: amd64
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  name: science-shared
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  namespaceSelector:
+    matchLabels:
+      science-ai.io/tenant: "true"
+  resourceGroups:
+    - coveredResources:
+        - cpu
+        - memory
+        - nvidia.com/gpu
+        - nvidia.com/gpumem
+        - nvidia.com/gpucores
+      flavors:
+        - name: science-cloud
+          resources:
+            - name: cpu
+              nominalQuota: "8"
+            - name: memory
+              nominalQuota: 16Gi
+            - name: nvidia.com/gpu
+              nominalQuota: "2"
+            - name: nvidia.com/gpumem
+              nominalQuota: "8192"
+            - name: nvidia.com/gpucores
+              nominalQuota: "200"
+  preemption:
+    reclaimWithinCohort: Any
+    withinClusterQueue: LowerPriority
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: tenant-etri
+  namespace: tenant-etri
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  clusterQueue: science-shared

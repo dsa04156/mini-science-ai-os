@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Kubeflow, Kueue, HAMi를 연결한 NAIS mini-science-ai-os의 한국어 설명과 실제 검증 결과">
+  <meta name="theme-color" content="#f5f5f7">
+  <link rel="icon" href="data:,">
+  <title>NAIS Mini Science AI OS</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f5f7;
+      --surface: #ffffff;
+      --surface-soft: rgba(255, 255, 255, 0.72);
+      --ink: #1d1d1f;
+      --ink-secondary: #6e6e73;
+      --ink-tertiary: #86868b;
+      --line: rgba(0, 0, 0, 0.10);
+      --line-strong: rgba(0, 0, 0, 0.16);
+      --blue: #0071e3;
+      --blue-hover: #0077ed;
+      --green: #248a3d;
+      --amber: #9a6700;
+      --red: #d70015;
+      --radius-small: 0.75rem;
+      --radius-medium: 1.25rem;
+      --radius-large: 2rem;
+      --shadow-small: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.06);
+      --shadow-large: 0 2rem 5rem rgba(0, 0, 0, 0.10);
+      --content: 74rem;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      line-height: 1.55;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    a { color: inherit; }
+    .skip-link {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 100;
+      transform: translateY(-5rem);
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      background: var(--ink);
+      color: white;
+      text-decoration: none;
+      transition: transform 180ms var(--ease-out);
+    }
+    .skip-link:focus { transform: translateY(0); }
+    :focus-visible { outline: 0.2rem solid rgba(0, 113, 227, 0.72); outline-offset: 0.2rem; }
+
+    .scroll-progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 90;
+      height: 0.18rem;
+      transform: scaleX(0);
+      transform-origin: left;
+      background: var(--blue);
+      will-change: transform;
+    }
+    .shell { width: min(var(--content), calc(100% - 2.5rem)); margin-inline: auto; }
+
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      background: rgba(245, 245, 247, 0.74);
+      backdrop-filter: blur(1.5rem) saturate(180%);
+      -webkit-backdrop-filter: blur(1.5rem) saturate(180%);
+    }
+    .site-nav::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+    }
+    .nav-inner {
+      min-height: 3.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .brand {
+      margin-right: auto;
+      font-size: 0.93rem;
+      font-weight: 650;
+      letter-spacing: -0.015em;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; align-items: center; gap: 1.35rem; }
+    .nav-links a {
+      color: var(--ink-secondary);
+      font-size: 0.76rem;
+      font-weight: 520;
+      text-decoration: none;
+      transition: color 160ms ease;
+    }
+    .nav-links a:hover, .nav-links a[aria-current="true"] { color: var(--ink); }
+    .nav-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.42rem;
+      padding: 0.36rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--ink-secondary);
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 0.42rem;
+      height: 0.42rem;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0.22rem rgba(36, 138, 61, 0.12);
+    }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      min-height: calc(100svh - 3.5rem);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: 5rem 0 6.5rem;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 46rem;
+      height: 46rem;
+      top: -24rem;
+      right: -13rem;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 48%, rgba(0, 113, 227, 0.15), rgba(90, 200, 250, 0.05) 42%, transparent 70%);
+      filter: blur(0.2rem);
+      pointer-events: none;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.16fr) minmax(20rem, 0.84fr);
+      align-items: center;
+      gap: clamp(3rem, 8vw, 7.5rem);
+    }
+    .eyebrow {
+      margin: 0 0 1.2rem;
+      color: var(--blue);
+      font-size: 0.8rem;
+      font-weight: 680;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 12ch;
+      margin-bottom: 1.6rem;
+      font-size: clamp(3.5rem, 7vw, 6.75rem);
+      font-weight: 720;
+      line-height: 0.98;
+      letter-spacing: -0.062em;
+    }
+    .hero-copy {
+      max-width: 38rem;
+      margin-bottom: 2rem;
+      color: var(--ink-secondary);
+      font-size: clamp(1.06rem, 1.6vw, 1.35rem);
+      line-height: 1.52;
+      letter-spacing: -0.02em;
+    }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; }
+    .button {
+      min-height: 2.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.42rem;
+      padding: 0.72rem 1.15rem;
+      border: 0;
+      border-radius: 999px;
+      font-weight: 620;
+      font-size: 0.94rem;
+      text-decoration: none;
+      cursor: pointer;
+      transform: scale(1);
+      transition: transform 320ms var(--ease-out), background 160ms ease, color 160ms ease;
+      touch-action: manipulation;
+    }
+    .button:active, .button.is-pressed { transform: scale(0.965); transition-duration: 80ms; }
+    .button-primary { background: var(--blue); color: white; }
+    .button-primary:hover { background: var(--blue-hover); }
+    .button-secondary { background: rgba(0, 0, 0, 0.055); color: var(--blue); }
+    .button-secondary:hover { background: rgba(0, 0, 0, 0.085); }
+
+    .run-window {
+      position: relative;
+      min-height: 31rem;
+      padding: 1.15rem;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-large);
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: var(--shadow-large);
+      backdrop-filter: blur(2rem) saturate(150%);
+      -webkit-backdrop-filter: blur(2rem) saturate(150%);
+    }
+    .window-bar { display: flex; align-items: center; gap: 0.42rem; padding: 0.2rem 0.3rem 1.05rem; }
+    .window-dot { width: 0.68rem; height: 0.68rem; border-radius: 50%; background: #d1d1d6; }
+    .window-label { margin-left: auto; color: var(--ink-tertiary); font-size: 0.68rem; font-weight: 600; }
+    .run-stage {
+      height: calc(100% - 2rem);
+      min-height: 27rem;
+      display: flex;
+      flex-direction: column;
+      padding: 1.55rem;
+      border-radius: 1.35rem;
+      background: #101114;
+      color: white;
+      overflow: hidden;
+    }
+    .run-state { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .run-state span:first-child { color: #a1a1a6; font-size: 0.74rem; letter-spacing: 0.02em; }
+    .state-success { display: inline-flex; align-items: center; gap: 0.42rem; color: #6ee78b; font-size: 0.73rem; font-weight: 650; }
+    .run-stage h2 { margin: 2rem 0 0.45rem; font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.06; letter-spacing: -0.045em; }
+    .run-id { color: #98989d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.69rem; }
+    .run-path { display: grid; gap: 0.65rem; margin: auto 0; }
+    .run-path-row { display: grid; grid-template-columns: 1.25rem 1fr auto; align-items: center; gap: 0.7rem; }
+    .path-index { color: #64d2ff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.68rem; }
+    .path-name { font-size: 0.84rem; font-weight: 580; }
+    .path-value { color: #a1a1a6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.68rem; }
+    .run-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+    .run-metric { padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,.14); }
+    .run-metric strong { display: block; font-size: 1.5rem; letter-spacing: -0.04em; }
+    .run-metric span { color: #98989d; font-size: 0.67rem; }
+
+    section { padding: clamp(5.5rem, 10vw, 9rem) 0; }
+    .section-head { max-width: 50rem; margin-bottom: clamp(2.8rem, 6vw, 4.8rem); }
+    .section-kicker { margin-bottom: 0.8rem; color: var(--blue); font-size: 0.78rem; font-weight: 680; letter-spacing: 0.075em; text-transform: uppercase; }
+    .section-title {
+      margin-bottom: 1.2rem;
+      font-size: clamp(2.5rem, 5.4vw, 5rem);
+      font-weight: 710;
+      line-height: 1.02;
+      letter-spacing: -0.057em;
+    }
+    .section-copy { max-width: 42rem; margin-bottom: 0; color: var(--ink-secondary); font-size: clamp(1rem, 1.5vw, 1.25rem); letter-spacing: -0.018em; }
+
+    .proof { background: var(--surface); }
+    .proof-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .proof-item { padding: 2.15rem 1.5rem 2.15rem 0; }
+    .proof-item + .proof-item { padding-left: 1.5rem; border-left: 1px solid var(--line); }
+    .proof-item strong { display: block; margin-bottom: 0.45rem; font-size: clamp(2.25rem, 4vw, 4rem); line-height: 1; letter-spacing: -0.06em; }
+    .proof-item span { color: var(--ink-secondary); font-size: 0.88rem; }
+
+    .flow-shell {
+      padding: clamp(1.25rem, 3vw, 2rem);
+      border-radius: var(--radius-large);
+      background: var(--surface);
+      box-shadow: var(--shadow-small);
+    }
+    .flow-steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.65rem; }
+    .flow-step {
+      position: relative;
+      min-height: 8.5rem;
+      padding: 1rem;
+      border: 0;
+      border-radius: 1rem;
+      background: #f5f5f7;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transform: scale(1);
+      transition: transform 320ms var(--ease-out), background 220ms ease, color 220ms ease;
+    }
+    .flow-step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -0.5rem;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-top: 1px solid var(--ink-tertiary);
+      border-right: 1px solid var(--ink-tertiary);
+      transform: rotate(45deg);
+    }
+    .flow-step:last-child::after { display: none; }
+    .flow-step:hover { background: #ebebf0; }
+    .flow-step:active { transform: scale(0.97); transition-duration: 80ms; }
+    .flow-step[aria-pressed="true"] { background: var(--ink); color: white; }
+    .flow-step small { display: block; margin-bottom: 2.25rem; color: var(--ink-tertiary); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.06em; }
+    .flow-step[aria-pressed="true"] small { color: #a1a1a6; }
+    .flow-step strong { display: block; font-size: 0.88rem; line-height: 1.25; }
+    .flow-detail {
+      min-height: 8rem;
+      display: grid;
+      grid-template-columns: 0.6fr 1.4fr;
+      align-items: start;
+      gap: 2rem;
+      margin-top: 0.8rem;
+      padding: 1.6rem;
+      border-radius: 1rem;
+      background: #f5f5f7;
+      transform-origin: top left;
+    }
+    .flow-detail-label { color: var(--blue); font-size: 0.72rem; font-weight: 680; letter-spacing: 0.06em; text-transform: uppercase; }
+    .flow-detail h3 { margin-bottom: 0.45rem; font-size: 1.35rem; letter-spacing: -0.035em; }
+    .flow-detail p { margin-bottom: 0; color: var(--ink-secondary); font-size: 0.94rem; }
+
+    .verification { background: #000; color: #f5f5f7; }
+    .verification .section-kicker { color: #64d2ff; }
+    .verification .section-copy { color: #a1a1a6; }
+    .check-list { border-top: 1px solid rgba(255,255,255,.18); }
+    .check-row {
+      display: grid;
+      grid-template-columns: minmax(10rem, .75fr) minmax(18rem, 1.65fr) auto;
+      gap: 1.5rem;
+      align-items: center;
+      padding: 1.35rem 0;
+      border-bottom: 1px solid rgba(255,255,255,.16);
+    }
+    .check-row strong { font-size: 0.96rem; }
+    .check-row span:nth-child(2) { color: #a1a1a6; font-size: 0.85rem; }
+    .result { display: inline-flex; align-items: center; gap: 0.42rem; color: #6ee78b; font-size: 0.72rem; font-weight: 680; white-space: nowrap; }
+    .result::before { content: ""; width: 0.42rem; height: 0.42rem; border-radius: 50%; background: currentColor; }
+
+    .boundaries-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .boundary {
+      min-height: 20rem;
+      padding: clamp(1.5rem, 3.5vw, 2.7rem);
+      border-radius: var(--radius-large);
+      background: var(--surface);
+    }
+    .boundary h3 { margin-bottom: 1rem; font-size: clamp(1.6rem, 3vw, 2.6rem); letter-spacing: -0.045em; }
+    .boundary p { color: var(--ink-secondary); }
+    .boundary ul { margin: 2rem 0 0; padding: 0; list-style: none; }
+    .boundary li { padding: 0.8rem 0; border-top: 1px solid var(--line); color: var(--ink-secondary); font-size: 0.88rem; }
+    .boundary.blocked { background: #fff7ed; }
+    .boundary.blocked .section-kicker { color: var(--amber); }
+
+    .operate { background: var(--surface); }
+    .terminal {
+      overflow: hidden;
+      border-radius: var(--radius-large);
+      background: #101114;
+      color: white;
+      box-shadow: var(--shadow-large);
+    }
+    .terminal-head { display: flex; align-items: center; gap: 0.45rem; padding: 1rem 1.15rem; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .terminal-head span:not(.window-dot) { margin-left: 0.3rem; color: #98989d; font-size: 0.69rem; }
+    .copy-button {
+      margin-left: auto;
+      padding: 0.42rem 0.72rem;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 280ms var(--ease-out), background 160ms ease;
+    }
+    .copy-button:hover { background: rgba(255,255,255,.14); }
+    .copy-button:active { transform: scale(0.95); transition-duration: 70ms; }
+    pre { margin: 0; padding: clamp(1.4rem, 4vw, 2.7rem); overflow-x: auto; color: #f5f5f7; font: 0.82rem/1.9 ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; }
+    .cmd { color: #64d2ff; }
+    .comment { color: #7d7d82; }
+    .access-note { display: flex; gap: 0.85rem; align-items: center; margin-top: 1.2rem; color: var(--ink-secondary); font-size: 0.86rem; }
+    .access-note code { color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    footer { padding: 3rem 0 4rem; color: var(--ink-tertiary); font-size: 0.75rem; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 1rem; padding-top: 1.2rem; border-top: 1px solid var(--line); }
+
+    [data-reveal] { opacity: 0; transform: translateY(1.5rem); transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out); }
+    [data-reveal].is-visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 920px) {
+      .nav-links { display: none; }
+      .hero { min-height: auto; padding-top: 4.5rem; }
+      .hero-grid { grid-template-columns: 1fr; gap: 3.5rem; }
+      h1 { max-width: 11ch; }
+      .run-window { max-width: 34rem; width: 100%; }
+      .proof-grid { grid-template-columns: repeat(2, 1fr); }
+      .proof-item:nth-child(3) { border-left: 0; }
+      .proof-item:nth-child(n+3) { border-top: 1px solid var(--line); }
+      .flow-steps { grid-template-columns: repeat(3, 1fr); }
+      .flow-step:nth-child(3)::after { display: none; }
+      .flow-detail { grid-template-columns: 1fr; gap: 0.75rem; }
+      .check-row { grid-template-columns: 1fr auto; gap: 0.35rem 1rem; }
+      .check-row span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+      .boundaries-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 1.5rem, var(--content)); }
+      .nav-live { display: none; }
+      h1 { font-size: clamp(3rem, 16vw, 4.6rem); }
+      .hero-copy { font-size: 1.02rem; }
+      .run-window { min-height: 28rem; padding: 0.7rem; border-radius: 1.55rem; }
+      .run-stage { min-height: 24rem; padding: 1.2rem; }
+      .proof-grid { grid-template-columns: 1fr; }
+      .proof-item, .proof-item + .proof-item { padding: 1.5rem 0; border-left: 0; border-top: 1px solid var(--line); }
+      .proof-item:first-child { border-top: 0; }
+      .flow-shell { overflow: hidden; }
+      .flow-steps {
+        display: flex;
+        overflow-x: auto;
+        margin-inline: -1.25rem;
+        padding-inline: 1.25rem;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+      .flow-steps::-webkit-scrollbar { display: none; }
+      .flow-step { min-width: 10rem; scroll-snap-align: start; }
+      .flow-step::after { display: none; }
+      .check-row { grid-template-columns: 1fr; }
+      .result { margin-top: 0.4rem; }
+      .footer-inner { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+      [data-reveal] { opacity: 1; transform: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .site-nav, .run-window { background: #f5f5f7; backdrop-filter: none; -webkit-backdrop-filter: none; }
+      .run-window { border-color: var(--line-strong); }
+    }
+    @media (prefers-contrast: more) {
+      :root { --ink-secondary: #3a3a3c; --line: rgba(0,0,0,.28); }
+      .site-nav { background: #f5f5f7; border-bottom: 1px solid #000; }
+      .button-secondary, .flow-step { border: 1px solid currentColor; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">본문으로 건너뛰기</a>
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <nav class="site-nav" aria-label="주요 탐색">
+    <div class="shell nav-inner">
+      <a class="brand" href="#top">mini-science-ai-os</a>
+      <div class="nav-links">
+        <a href="#flow">실행 흐름</a>
+        <a href="#verification">검증</a>
+        <a href="#boundaries">경계</a>
+        <a href="#operate">운영</a>
+      </div>
+      <span class="nav-live"><span class="live-dot" aria-hidden="true"></span>LIVE MVP</span>
+    </div>
+  </nav>
+
+  <main id="content">
+    <header class="hero" id="top">
+      <div class="shell hero-grid">
+        <div data-reveal>
+          <p class="eyebrow">NAIS · Science AI Platform</p>
+          <h1>Job만 제출하세요.</h1>
+          <p class="hero-copy">플랫폼이 권한과 Quota를 확인하고, Kubeflow Pipeline을 실행하고, GPU를 배치하고, Metric과 Artifact를 남깁니다.</p>
+          <div class="actions">
+            <a class="button button-primary" href="#flow">실행 흐름 보기</a>
+            <a class="button button-secondary" href="#verification">검증 결과</a>
+          </div>
+        </div>
+
+        <div class="run-window" data-reveal aria-label="최근 Kubeflow 실행 결과">
+          <div class="window-bar" aria-hidden="true">
+            <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
+            <span class="window-label">KUBEFLOW PIPELINES 2.17.0</span>
+          </div>
+          <div class="run-stage">
+            <div class="run-state"><span>FINAL CPU E2E</span><span class="state-success"><span class="live-dot"></span>SUCCEEDED</span></div>
+            <h2>science-416f16b638f9</h2>
+            <span class="run-id">RUN · 51003f6a-feca-4114-ad22-2ff05d42a731</span>
+            <div class="run-path">
+              <div class="run-path-row"><span class="path-index">01</span><span class="path-name">Science Job API</span><span class="path-value">validated</span></div>
+              <div class="run-path-row"><span class="path-index">02</span><span class="path-name">Kueue</span><span class="path-value">admitted</span></div>
+              <div class="run-path-row"><span class="path-index">03</span><span class="path-name">Kubernetes Job</span><span class="path-value">complete</span></div>
+              <div class="run-path-row"><span class="path-index">04</span><span class="path-name">MinIO Artifact</span><span class="path-value">published</span></div>
+            </div>
+            <div class="run-metrics">
+              <div class="run-metric"><strong>0.125</strong><span>loss</span></div>
+              <div class="run-metric"><strong>0.875</strong><span>accuracy</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="proof" aria-labelledby="proof-title">
+      <div class="shell">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker">Observed, not assumed</p>
+          <h2 class="section-title" id="proof-title">실제로 확인한 규모.</h2>
+          <p class="section-copy">기존 HAMi, Prometheus, Grafana, DCGM Exporter와 KubeEdge는 덮어쓰지 않고 그대로 재사용했습니다.</p>
+        </div>
+        <div class="proof-grid" data-reveal>
+          <div class="proof-item"><strong>5</strong><span>Ready Node</span></div>
+          <div class="proof-item"><strong>2</strong><span>NVIDIA GPU Node</span></div>
+          <div class="proof-item"><strong>11</strong><span>Unit/API Test 통과</span></div>
+          <div class="proof-item"><strong>2</strong><span>Tenant Namespace</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow" aria-labelledby="flow-title">
+      <div class="shell">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker">One continuous path</p>
+          <h2 class="section-title" id="flow-title">제출부터 증거까지.</h2>
+          <p class="section-copy">각 단계를 선택하면 그 구성요소가 무엇을 결정하고 무엇을 결정하지 않는지 확인할 수 있습니다.</p>
+        </div>
+        <div class="flow-shell" data-reveal>
+          <div class="flow-steps" role="group" aria-label="Science Job 실행 단계">
+            <button class="flow-step" type="button" aria-pressed="true" data-step="api"><small>01 · SUBMIT</small><strong>Science Job API</strong></button>
+            <button class="flow-step" type="button" aria-pressed="false" data-step="kfp"><small>02 · RUN</small><strong>Kubeflow Pipelines</strong></button>
+            <button class="flow-step" type="button" aria-pressed="false" data-step="queue"><small>03 · ADMIT</small><strong>Kueue</strong></button>
+            <button class="flow-step" type="button" aria-pressed="false" data-step="hami"><small>04 · PLACE</small><strong>HAMi</strong></button>
+            <button class="flow-step" type="button" aria-pressed="false" data-step="job"><small>05 · EXECUTE</small><strong>Kubernetes Job</strong></button>
+            <button class="flow-step" type="button" aria-pressed="false" data-step="store"><small>06 · PERSIST</small><strong>MySQL · MinIO</strong></button>
+          </div>
+          <div class="flow-detail" aria-live="polite">
+            <span class="flow-detail-label">Science Job API</span>
+            <div><h3>안전한 입력만 실행 경로로 보냅니다.</h3><p>Tenant, 허용 Registry, CPU·Memory·GPU 상한을 검사합니다. privileged, hostPath, hostPID, hostNetwork와 임의 ServiceAccount 입력은 구조적으로 받지 않습니다.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="verification" id="verification" aria-labelledby="verification-title">
+      <div class="shell">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker">Live verification</p>
+          <h2 class="section-title" id="verification-title">Manifest가 아니라 결과로.</h2>
+          <p class="section-copy">API 응답, KFP Run, Kueue Condition, HAMi Annotation, DCGM Metric과 Audit Log를 직접 확인했습니다.</p>
+        </div>
+        <div class="check-list" data-reveal>
+          <div class="check-row"><strong>CPU Pipeline</strong><span>0.3.1 Image · internal-v1 · Metric/Artifact 재조회</span><span class="result">PASS</span></div>
+          <div class="check-row"><strong>GPU 공동활용</strong><span>같은 GPU UUID에 1024MiB · 10%씩 두 Job 할당</span><span class="result">PASS</span></div>
+          <div class="check-row"><strong>Queue Quota</strong><span>3 CPU 실행 중 6 CPU 요청이 정확한 부족 사유로 대기</span><span class="result">PASS</span></div>
+          <div class="check-row"><strong>ETRI 최소 권한</strong><span>Agent 직접 Job·Pod·Secret 접근과 Runner 범위 이탈 거부</span><span class="result">PASS</span></div>
+          <div class="check-row"><strong>MCP Audit</strong><span>타 Tenant Job 404와 linked_job_id 구조화 로그</span><span class="result">PASS</span></div>
+          <div class="check-row"><strong>KFP Runtime</strong><span>API·UI·Metadata·MySQL·Workflow Controller 1/1</span><span class="result">PASS</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="boundaries" aria-labelledby="boundaries-title">
+      <div class="shell">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker">Honest boundaries</p>
+          <h2 class="section-title" id="boundaries-title">완료와 한계를 같이.</h2>
+          <p class="section-copy">검증하지 못한 부분을 완료로 표현하지 않습니다.</p>
+        </div>
+        <div class="boundaries-grid">
+          <article class="boundary" data-reveal>
+            <p class="section-kicker">Completed</p>
+            <h3>실행 경로는 연결됐습니다.</h3>
+            <p>CPU·GPU KFP Run, Queue 대기, Metric과 Artifact, Tenant 격리, MCP Tool과 Audit을 실제 클러스터에서 확인했습니다.</p>
+            <ul><li>Kubeflow Pipelines 2.17.0</li><li>Kueue ClusterQueue / LocalQueue</li><li>HAMi Logical GPU Allocation</li><li>MySQL Metadata / MinIO Artifact</li></ul>
+          </article>
+          <article class="boundary blocked" data-reveal>
+            <p class="section-kicker">Blocked / Partial</p>
+            <h3>아직 보장하지 않습니다.</h3>
+            <p>현재 환경의 관찰 한계와 운영 전 필수 과제를 별도로 남겼습니다.</p>
+            <ul><li>Flannel 환경 NetworkPolicy Enforcement</li><li>HAMi 논리 할당과 물리 GPU 성능 격리</li><li>게시 Git URL이 필요한 Argo CD Sync/Healthy</li><li>local-path Storage의 HA·원격 Backup</li></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="operate" id="operate" aria-labelledby="operate-title">
+      <div class="shell">
+        <div class="section-head" data-reveal>
+          <p class="section-kicker">Operate</p>
+          <h2 class="section-title" id="operate-title">같은 명령으로 다시.</h2>
+          <p class="section-copy">모든 배포와 검증은 재실행 가능한 명령으로 남겼습니다. Demo 정리는 프로젝트가 만든 Demo Resource만 대상으로 합니다.</p>
+        </div>
+        <div class="terminal" data-reveal>
+          <div class="terminal-head"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span><span>bash · mini-science-ai-os</span><button class="copy-button" type="button" data-copy>명령 복사</button></div>
+          <pre><code id="commands"><span class="cmd">cd</span> /home/jinuk/codex-work/nais/mini-science-ai-os
+
+<span class="cmd">make</span> inventory      <span class="comment"># 기존 환경 재조사</span>
+<span class="cmd">make</span> validate       <span class="comment"># 코드와 Manifest 검증</span>
+<span class="cmd">make</span> bootstrap      <span class="comment"># Kubeflow 기반 플랫폼 배포</span>
+<span class="cmd">make</span> demo           <span class="comment"># CPU · GPU · Queue Demo</span>
+<span class="cmd">make</span> test           <span class="comment"># RBAC · API · MCP 실환경 검증</span>
+<span class="cmd">make</span> destroy-demo   <span class="comment"># Demo Resource만 정리</span></code></pre>
+        </div>
+        <p class="access-note"><span class="live-dot" aria-hidden="true"></span>한국어 설명 페이지: <code>http://192.168.0.56:8088</code> · 내부망 데모 전용</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner"><span>NAIS Science Workspace · ETRI Internal</span><span>Runtime image 0.3.1 · KFP 2.17.0</span></div>
+  </footer>
+
+  <script>
+    const flowContent = {
+      api: ["Science Job API", "안전한 입력만 실행 경로로 보냅니다.", "Tenant, 허용 Registry, CPU·Memory·GPU 상한을 검사합니다. privileged, hostPath, hostPID, hostNetwork와 임의 ServiceAccount 입력은 구조적으로 받지 않습니다."],
+      kfp: ["Kubeflow Pipelines", "Run과 실험 이력을 하나의 흐름으로 묶습니다.", "Tenant별 Runner ServiceAccount로 Pipeline을 실행하고, Run 상태와 Parameter, Metric, Result Artifact를 API에 연결합니다."],
+      queue: ["Kueue", "지금 실행할 수 있는지를 결정합니다.", "LocalQueue와 공용 ClusterQueue의 CPU·Memory·GPU Quota를 확인합니다. 부족하면 Job을 Suspend하고 확인 가능한 대기 사유를 남깁니다."],
+      hami: ["HAMi", "어떤 논리 GPU 자원을 사용할지 결정합니다.", "실제 Node Allocatable에서 확인한 nvidia.com/gpu, gpumem, gpucores를 사용합니다. 논리 할당은 물리 성능 격리 보장이 아닙니다."],
+      job: ["Kubernetes Job", "제한된 Sandbox에서 컨테이너를 실행합니다.", "non-root, RuntimeDefault, capabilities drop ALL, read-only root filesystem과 최대 실행시간을 적용하고 Tenant Namespace 밖으로 권한을 확장하지 않습니다."],
+      store: ["MySQL · MinIO", "Metadata와 Artifact를 분리해 보존합니다.", "KFP Run과 Metadata는 MySQL, Model·Checkpoint·Plot·Result는 MinIO의 kubeflow-pipelines Bucket에 저장합니다. 현재 local-path는 HA나 원격 Backup이 아닙니다."]
+    };
+
+    const detail = document.querySelector(".flow-detail");
+    document.querySelectorAll(".flow-step").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".flow-step").forEach((item) => item.setAttribute("aria-pressed", "false"));
+        button.setAttribute("aria-pressed", "true");
+        const [label, title, body] = flowContent[button.dataset.step];
+        detail.innerHTML = `<span class="flow-detail-label">${label}</span><div><h3>${title}</h3><p>${body}</p></div>`;
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          detail.animate(
+            [{ opacity: 0.62, transform: "scale(0.985) translateY(6px)" }, { opacity: 1, transform: "scale(1) translateY(0)" }],
+            { duration: 360, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+          );
+        }
+      });
+    });
+
+    document.querySelectorAll(".button").forEach((button) => {
+      const release = () => button.classList.remove("is-pressed");
+      button.addEventListener("pointerdown", () => button.classList.add("is-pressed"));
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("pointerleave", release);
+    });
+
+    const revealItems = document.querySelectorAll("[data-reveal]");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+    } else {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      revealItems.forEach((item) => revealObserver.observe(item));
+    }
+
+    const progress = document.querySelector(".scroll-progress");
+    const updateProgress = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+    };
+    addEventListener("scroll", updateProgress, { passive: true });
+    updateProgress();
+
+    const navLinks = [...document.querySelectorAll(".nav-links a")];
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          navLinks.forEach((link) => link.setAttribute("aria-current", String(link.hash === `#${entry.target.id}`)));
+        }
+      });
+    }, { rootMargin: "-35% 0px -55%", threshold: 0 });
+    document.querySelectorAll("main section[id]").forEach((section) => sectionObserver.observe(section));
+
+    document.querySelector("[data-copy]").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const text = `cd /home/jinuk/codex-work/nais/mini-science-ai-os\n\nmake inventory\nmake validate\nmake bootstrap\nmake demo\nmake test\nmake destroy-demo`;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "복사됨";
+        setTimeout(() => { button.textContent = "명령 복사"; }, 1500);
+      } catch {
+        button.textContent = "복사 실패";
+      }
+    });
+  </script>
+</body>
+</html>

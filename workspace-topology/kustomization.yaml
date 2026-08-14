@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tenant-etri
+configMapGenerator:
+  - name: science-job-portal-navigation
+    files:
+      - favicon.svg=overrides/science_os/portal/favicon.svg
+      - index.html=overrides/science_os/portal/index.html
+      - portal.css=overrides/science_os/portal/portal.css
+      - portal.js=overrides/science_os/portal/portal.js
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/name: science-job-api
+    app.kubernetes.io/part-of: mini-science-ai-os
+    science-ai.io/managed-by: mini-science-ai-os

@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mini-science-kubeflow-cluster
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  project: default
+  source:
+    repoURL: https://REPLACE_WITH_PUBLISHED_REPOSITORY/mini-science-ai-os.git
+    targetRevision: main
+    path: mini-science-ai-os/apps/kubeflow/cluster-scoped
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+    syncOptions:
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mini-science-kubeflow-runtime
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  project: default
+  source:
+    repoURL: https://REPLACE_WITH_PUBLISHED_REPOSITORY/mini-science-ai-os.git
+    targetRevision: main
+    path: mini-science-ai-os/apps/kubeflow/runtime
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubeflow
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+    syncOptions:
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mini-science-ai-os
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  project: default
+  source:
+    repoURL: https://REPLACE_WITH_PUBLISHED_REPOSITORY/mini-science-ai-os.git
+    targetRevision: main
+    path: mini-science-ai-os/clusters/lab
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: science-ai-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+    syncOptions:
+      - ServerSideApply=true

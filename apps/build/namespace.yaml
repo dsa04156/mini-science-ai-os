@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: science-ai-build
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+    science-ai.io/system: image-build
+    # Kaniko must unpack the base image filesystem as root. This namespace is
+    # ephemeral and isolated from tenant/runtime namespaces; it is not a
+    # runtime workload namespace.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

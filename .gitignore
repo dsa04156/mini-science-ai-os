@@ -1,0 +1,28 @@
+# Local agent and browser sessions
+.codex/
+.playwright-cli/
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor and operating-system files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Logs and temporary files
+*.log
+*.tmp

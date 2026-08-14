@@ -1,0 +1,167 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-default-deny
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-dns-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-kubeflow-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchExpressions:
+      - key: science-ai.io/managed-by
+        operator: In
+        values: [mini-science-ai-os]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kubeflow
+          podSelector:
+            matchLabels:
+              app: ml-pipeline
+      ports:
+        - protocol: TCP
+          port: 8888
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-catalog-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-runtime
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              science-ai.io/system: catalog
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: resource-catalog
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-science-api-catalog-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: science-job-api
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              science-ai.io/system: catalog
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: resource-catalog
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-api-ingress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: science-job-api
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-runtime
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-agent-api-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-runtime
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: science-job-api
+      ports:
+        - protocol: TCP
+          port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tenant-science-api-kubernetes-egress
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: science-job-api
+  policyTypes: [Egress]
+  # The in-cluster Kubernetes API Service is in the default Namespace. A
+  # policy-engine-specific ipBlock may be needed when the Service resolves to
+  # a control-plane host address; this is why live NetworkPolicy enforcement
+  # remains an explicit verification gate.
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+      ports:
+        - protocol: TCP
+          port: 443

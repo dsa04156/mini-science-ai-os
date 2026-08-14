@@ -1,0 +1,13 @@
+{
+  "project": "physical-ai",
+  "image": "192.168.0.56:5000/mini-science-ai-os:0.3.1",
+  "command": ["python", "-m", "science_os.demo", "--mode", "cpu"],
+  "resources": {
+    "cpu": "500m",
+    "memory": "512Mi"
+  },
+  "datasetVersion": "factory-v1",
+  "experiment": "kubeflow-demo",
+  "priority": "normal",
+  "gitCommit": "demo"
+}

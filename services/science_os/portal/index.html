@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>NAIS Science Workspace</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./portal.css">
+  <script src="./portal.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+
+  <main id="login-view" class="login-view">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="eyebrow">NAIS · SCIENCE AI OS</p>
+      <h1 id="login-title">워크스페이스를 여는 중입니다.</h1>
+      <p id="connection-message" class="login-copy" aria-live="polite">현재 기관의 자원과 실행 이력을 안전하게 연결하고 있습니다.</p>
+      <div class="connection-progress" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button id="retry-connection" class="primary-button wide" type="button" hidden><span>다시 연결</span><span aria-hidden="true">↻</span></button>
+      <div class="trust-row" aria-label="보안 특성">
+        <span>자동 연결</span><span>ETRI 내부망 전용</span><span>Kubeflow 연동</span>
+      </div>
+    </section>
+    <aside class="login-visual" aria-hidden="true">
+      <div class="orb orb-a"></div><div class="orb orb-b"></div>
+      <div class="signal-card signal-main"><small>실행 경로</small><strong>API → Kueue → Kubeflow</strong><div class="signal-line"><i></i><i></i><i></i></div></div>
+      <div class="signal-card signal-small"><span class="live-dot"></span><strong>ETRI workspace</strong></div>
+    </aside>
+  </main>
+
+  <div id="workspace" class="workspace" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div><strong>NAIS Science</strong><small id="platform-version">ETRI Internal</small></div>
+      </div>
+      <nav class="main-nav" aria-label="주 메뉴">
+        <button class="nav-item active" type="button" data-view="overview"><span class="nav-icon">◫</span><span>개요</span></button>
+        <button class="nav-item" type="button" data-view="jobs"><span class="nav-icon">≡</span><span>작업</span><span id="nav-job-count" class="nav-count">0</span></button>
+        <button class="nav-item" type="button" data-view="submit"><span class="nav-icon">＋</span><span>새 작업</span></button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <section class="tenant-card" aria-label="현재 테넌트">
+        <span class="status-dot"></span>
+        <div><small>현재 테넌트</small><strong id="tenant-sidebar">—</strong></div>
+      </section>
+      <button id="reconnect-button" class="quiet-button" type="button">세션 새로고침</button>
+    </aside>
+
+    <div class="content-shell">
+      <header class="topbar">
+        <div>
+          <p id="page-eyebrow" class="eyebrow">WORKSPACE</p>
+          <h1 id="page-title">개요</h1>
+        </div>
+        <div class="top-actions">
+          <span id="last-updated" class="last-updated" aria-live="polite">동기화 준비</span>
+          <button id="refresh-button" class="icon-button refresh-button" type="button" aria-label="새로고침">↻</button>
+          <button id="new-job-button" class="primary-button compact" type="button">새 작업</button>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1">
+        <section id="overview-view" class="view active" aria-labelledby="overview-title">
+          <h2 id="overview-title" class="sr-only">워크스페이스 개요</h2>
+          <section class="hero-card">
+            <div>
+              <p class="eyebrow">RESEARCH CONTROL PLANE</p>
+              <h2><span id="hero-tenant">ETRI</span> 계산 자원을 한눈에.</h2>
+              <p>작업 제출부터 Queue, Kubeflow 실행, Metric과 Artifact까지 하나의 흐름으로 추적합니다.</p>
+            </div>
+            <button class="primary-button light" type="button" data-action="go-submit">작업 제출하기 <span aria-hidden="true">→</span></button>
+            <div class="hero-orbit" aria-hidden="true"><span></span><span></span><i></i></div>
+          </section>
+
+          <section class="stats-grid" aria-label="운영 요약">
+            <article class="stat-card"><div class="stat-top"><span>전체 작업</span><span class="metric-icon blue">J</span></div><strong id="stat-total">—</strong><small id="stat-total-note">불러오는 중</small></article>
+            <article class="stat-card"><div class="stat-top"><span>실행 중</span><span class="metric-icon green">R</span></div><strong id="stat-running">—</strong><small>현재 Queue 승인 작업</small></article>
+            <article class="stat-card"><div class="stat-top"><span>대기 중</span><span class="metric-icon orange">Q</span></div><strong id="stat-pending">—</strong><small>Quota 또는 자원 대기</small></article>
+            <article class="stat-card"><div class="stat-top"><span>GPU 노드</span><span class="metric-icon purple">G</span></div><strong id="stat-gpu">—</strong><small id="stat-gpu-note">Resource Catalog</small></article>
+          </section>
+
+          <div class="overview-grid">
+            <section class="panel recent-panel">
+              <div class="panel-heading"><div><p class="eyebrow">RECENT</p><h2>최근 작업</h2></div><button class="text-button" type="button" data-action="go-jobs">모두 보기</button></div>
+              <div id="recent-jobs" class="job-list" aria-live="polite"></div>
+            </section>
+            <section class="panel resource-panel">
+              <div class="panel-heading"><div><p class="eyebrow">CAPACITY</p><h2>자원 상태</h2></div><span id="catalog-health" class="status-pill neutral">확인 중</span></div>
+              <div id="resource-content" class="resource-content"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="jobs-view" class="view" aria-labelledby="jobs-title">
+          <div class="section-heading"><div><p class="eyebrow">EXECUTIONS</p><h2 id="jobs-title">작업 이력</h2><p>현재 테넌트에서 제출한 Kubeflow 실행만 표시됩니다.</p></div></div>
+          <section class="panel jobs-panel">
+            <div class="toolbar">
+              <label class="search-field"><span class="sr-only">작업 검색</span><span aria-hidden="true">⌕</span><input id="job-search" type="search" placeholder="프로젝트, 실험, Job ID 검색"></label>
+              <div id="status-filters" class="segmented" aria-label="상태 필터">
+                <button class="active" type="button" data-status="all">전체</button><button type="button" data-status="running">실행</button><button type="button" data-status="pending">대기</button><button type="button" data-status="succeeded">완료</button><button type="button" data-status="failed">실패</button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>작업</th><th>상태</th><th>프로젝트</th><th>Queue</th><th>Kubeflow</th><th>생성 시각</th><th><span class="sr-only">상세</span></th></tr></thead>
+                <tbody id="jobs-table-body"></tbody>
+              </table>
+            </div>
+            <div id="jobs-empty" class="empty-state" hidden><div class="empty-symbol">◇</div><h3>표시할 작업이 없습니다</h3><p>검색 조건을 바꾸거나 첫 Science Job을 제출해 보세요.</p></div>
+          </section>
+        </section>
+
+        <section id="submit-view" class="view" aria-labelledby="submit-title">
+          <div class="section-heading"><div><p class="eyebrow">NEW EXECUTION</p><h2 id="submit-title">새 Science Job</h2><p>Shell 문자열 대신 실행 인자를 한 줄씩 입력합니다. 권한과 자원 한도는 서버에서 다시 검증됩니다.</p></div></div>
+          <form id="job-form" class="submit-layout" novalidate>
+            <div class="form-stack">
+              <section class="panel form-panel">
+                <div class="form-section-title"><span>1</span><div><h3>실험 정보</h3><p>재현 가능한 실행을 위한 식별 정보입니다.</p></div></div>
+                <div class="form-grid two">
+                  <label>프로젝트<input name="project" required pattern="[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?" value="physical-ai" maxlength="63"><small>영문 소문자, 숫자, 하이픈</small></label>
+                  <label>실험 이름<input name="experiment" required value="defect-detection" maxlength="63"></label>
+                  <label>데이터셋 버전<input name="datasetVersion" required value="factory-v1" maxlength="128"></label>
+                  <label>Git Commit<input name="gitCommit" value="unknown" maxlength="64"></label>
+                </div>
+              </section>
+              <section class="panel form-panel">
+                <div class="form-section-title"><span>2</span><div><h3>실행 환경</h3><p>허용된 Registry의 고정 버전 이미지를 사용하세요.</p></div></div>
+                <label>컨테이너 이미지<input id="image-input" name="image" required maxlength="256"><small id="registry-help">허용 Registry를 불러오는 중입니다.</small></label>
+                <label>Command · 한 줄에 인자 하나<textarea name="command" required rows="6" spellcheck="false">python
+-m
+science_os.demo
+--mode
+cpu</textarea><small>예: python / -m / science_os.demo. Shell 확장은 수행하지 않습니다.</small></label>
+              </section>
+              <section class="panel form-panel">
+                <div class="form-section-title"><span>3</span><div><h3>자원과 우선순위</h3><p>Kueue가 Quota를 확인하고 Scheduler가 실행 노드를 선택합니다.</p></div></div>
+                <div class="form-grid three">
+                  <label>CPU<input name="cpu" required value="500m"></label>
+                  <label>Memory<input name="memory" required value="512Mi"></label>
+                  <label>우선순위<select name="priority"><option value="low">낮음</option><option value="normal" selected>보통</option><option value="high">높음</option></select></label>
+                </div>
+                <label class="switch-row"><span><strong>GPU 사용</strong><small>HAMi 논리 자원 할당을 요청합니다.</small></span><input id="gpu-toggle" type="checkbox" role="switch"><i aria-hidden="true"></i></label>
+                <div id="gpu-fields" class="gpu-fields" hidden>
+                  <div class="form-grid three">
+                    <label>GPU 개수<input name="gpuCount" type="number" min="1" max="1" value="1"></label>
+                    <label>GPU Memory MiB<input name="gpuMemoryMiB" type="number" min="1" max="16303" value="1024"></label>
+                    <label>GPU Core %<input name="gpuCorePercent" type="number" min="1" max="100" value="10"></label>
+                  </div>
+                  <p class="notice">논리 할당량은 실제 성능 격리를 보장하지 않습니다. DCGM 사용량과 함께 확인하세요.</p>
+                </div>
+              </section>
+            </div>
+            <aside class="submit-summary panel">
+              <p class="eyebrow">REVIEW</p><h3>제출 요약</h3>
+              <dl><div><dt>테넌트</dt><dd id="summary-tenant">—</dd></div><div><dt>Namespace</dt><dd id="summary-namespace">—</dd></div><div><dt>LocalQueue</dt><dd id="summary-queue">—</dd></div><div><dt>실행 제한</dt><dd id="summary-runtime">—</dd></div></dl>
+              <div class="flow-mini"><span>검증</span><i></i><span>Queue</span><i></i><span>Kubeflow</span></div>
+              <p id="submit-error" class="form-error" role="alert" hidden></p>
+              <button id="submit-button" class="primary-button wide" type="submit">검증 후 제출 <span aria-hidden="true">→</span></button>
+              <small class="summary-note">제출 시 이 테넌트의 전용 ServiceAccount와 보안 정책이 자동 적용됩니다.</small>
+            </aside>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="모바일 주 메뉴">
+      <button class="active" type="button" data-view="overview"><span>◫</span>개요</button><button type="button" data-view="jobs"><span>≡</span>작업</button><button type="button" data-view="submit"><span>＋</span>새 작업</button>
+    </nav>
+  </div>
+
+  <dialog id="job-dialog" class="job-dialog">
+    <div class="dialog-header"><div><p class="eyebrow">JOB DETAIL</p><h2 id="detail-title">작업 상세</h2></div><button class="icon-button" type="button" data-action="close-dialog" aria-label="상세 닫기">×</button></div>
+    <div id="detail-body" class="dialog-body"></div>
+    <div class="dialog-actions"><button id="cancel-job-button" class="danger-button" type="button">작업 취소</button><button class="secondary-button" type="button" data-action="close-dialog">닫기</button></div>
+  </dialog>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

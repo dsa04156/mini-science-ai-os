@@ -1,0 +1,90 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-demo-static
+  namespace: tenant-etri
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+    science-ai.io/demo: "true"
+    science-ai.io/tenant: etri
+    science-ai.io/project: physical-ai
+    science-ai.io/experiment: gpu-demo
+    science-ai.io/job-id: gpu-demo-static
+    kueue.x-k8s.io/queue-name: tenant-etri
+    kueue.x-k8s.io/priority-class: science-normal
+  annotations:
+    science-ai.io/dataset-version: demo-v1
+spec:
+  suspend: true
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        science-ai.io/managed-by: mini-science-ai-os
+        science-ai.io/demo: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: science-job-runner
+      automountServiceAccountToken: false
+      priorityClassName: science-normal
+      schedulerName: hami-scheduler
+      nodeSelector:
+        environment: cloud
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: science-job
+          image: 192.168.0.56:5000/mini-science-ai-os:0.3.1
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "science_os.demo", "--mode", "gpu"]
+          env:
+            - name: SCIENCE_JOB_ID
+              value: gpu-demo-static
+            - name: SCIENCE_TENANT
+              value: etri
+            - name: SCIENCE_PROJECT
+              value: physical-ai
+            - name: SCIENCE_DATASET_VERSION
+              value: demo-v1
+            - name: SCIENCE_EXPERIMENT
+              value: tenant-etri/physical-ai/gpu-demo
+            - name: SCIENCE_GIT_COMMIT
+              value: unknown
+            - name: SCIENCE_CONTAINER_IMAGE
+              value: 192.168.0.56:5000/mini-science-ai-os:0.3.1
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+              nvidia.com/gpu: "1"
+              nvidia.com/gpumem: "1024"
+              nvidia.com/gpucores: "10"
+            limits:
+              cpu: 500m
+              memory: 512Mi
+              nvidia.com/gpu: "1"
+              nvidia.com/gpumem: "1024"
+              nvidia.com/gpucores: "10"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  hard:
+    pods: "20"
+    requests.cpu: "8"
+    limits.cpu: "8"
+    requests.memory: 16Gi
+    limits.memory: 16Gi
+    # Two logical HAMI slices permit the two-job sharing demo. This is a
+    # scheduling quota, not a claim of physical GPU performance isolation.
+    requests.nvidia.com/gpu: "2"
+    limits.nvidia.com/gpu: "2"
+    requests.nvidia.com/gpumem: "8192"
+    limits.nvidia.com/gpumem: "8192"
+    requests.nvidia.com/gpucores: "100"
+    limits.nvidia.com/gpucores: "100"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 1
+        memory: 1Gi
+      max:
+        cpu: 8
+        memory: 16Gi

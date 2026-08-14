@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  type: ExternalName
+  externalName: minio.science-ai-mlops.svc.cluster.local
+  ports:
+    - name: http-s3
+      port: 9000
+

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeflow-artifact-env
+data:
+  region: us-east-1
+  default-region: us-east-1
+  endpoint-url: http://seaweedfs.kubeflow.svc.cluster.local:9000
+  endpoint-url-s3: http://seaweedfs.kubeflow.svc.cluster.local:9000
+  ec2-metadata-disabled: "true"

@@ -1,0 +1,19 @@
+{
+  "title": "mini-science-ai-os overview",
+  "uid": "mini-science-ai-os",
+  "schemaVersion": 39,
+  "version": 2,
+  "tags": ["science-ai", "kueue", "hami", "kubeflow"],
+  "timezone": "browser",
+  "panels": [
+    {"id": 1, "type": "timeseries", "title": "GPU utilization", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}, "targets": [{"expr": "DCGM_FI_DEV_GPU_UTIL", "legendFormat": "{{modelName}}/{{UUID}}"}]},
+    {"id": 2, "type": "timeseries", "title": "GPU memory used", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}, "targets": [{"expr": "DCGM_FI_DEV_FB_USED", "legendFormat": "{{modelName}}/{{UUID}} MiB"}]},
+    {"id": 3, "type": "timeseries", "title": "Science Job API requests", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}, "targets": [{"expr": "sum(rate(science_job_api_requests_total[5m])) by (route,status)", "legendFormat": "{{route}} {{status}}"}]},
+    {"id": 4, "type": "timeseries", "title": "MCP tool calls", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}, "targets": [{"expr": "sum(rate(science_mcp_tool_calls_total[5m])) by (tool,result)", "legendFormat": "{{tool}} {{result}}"}]},
+    {"id": 5, "type": "stat", "title": "Kueue pending workloads", "gridPos": {"h": 5, "w": 8, "x": 0, "y": 16}, "targets": [{"expr": "sum(kueue_pending_workloads)"}]},
+    {"id": 6, "type": "stat", "title": "Ready GPU nodes", "gridPos": {"h": 5, "w": 8, "x": 8, "y": 16}, "targets": [{"expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\",label_gpu=\"on\"})"}]},
+    {"id": 7, "type": "stat", "title": "Kubeflow Pipelines ready", "gridPos": {"h": 5, "w": 8, "x": 16, "y": 16}, "targets": [{"expr": "min(kube_deployment_status_replicas_available{namespace=\"kubeflow\",deployment=~\"ml-pipeline|ml-pipeline-ui|metadata-grpc-deployment|mysql\"})"}]}
+  ],
+  "templating": {"list": []},
+  "annotations": {"list": []}
+}

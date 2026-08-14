@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mini-science-ai-os-app-of-apps
+  namespace: argocd
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  project: default
+  source:
+    repoURL: https://REPLACE_WITH_PUBLISHED_REPOSITORY/mini-science-ai-os.git
+    targetRevision: main
+    path: mini-science-ai-os/argocd/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+

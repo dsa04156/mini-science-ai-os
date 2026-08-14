@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-settings
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os
+data:
+  TENANT: tenant-placeholder
+  TENANT_NAMESPACE: tenant-placeholder
+  LOCAL_QUEUE: tenant-placeholder
+

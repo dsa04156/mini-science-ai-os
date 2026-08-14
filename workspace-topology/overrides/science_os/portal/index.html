@@ -77,30 +77,79 @@
       <main id="main-content" tabindex="-1">
         <section id="overview-view" class="view active" aria-labelledby="overview-title">
           <h2 id="overview-title" class="sr-only">워크스페이스 개요</h2>
-          <section class="hero-card">
-            <div>
-              <p class="eyebrow">RESEARCH CONTROL PLANE</p>
-              <h2><span id="hero-tenant">ETRI</span> 계산 자원을 한눈에.</h2>
-              <p>작업 제출부터 Queue, Kubeflow 실행, Metric과 Artifact까지 하나의 흐름으로 추적합니다.</p>
+          <section class="operations-hero" aria-label="실시간 운영 준비 상태">
+            <div class="operations-headline">
+              <div class="live-kicker"><span class="live-dot"></span><span>LIVE EVIDENCE · <span id="operations-age">연결 중</span></span></div>
+              <p class="eyebrow">RESEARCH INFRASTRUCTURE CONTROL ROOM</p>
+              <h2><strong id="operations-ready">—/—</strong> nodes ready.</h2>
+              <p>실제 장비에서 Kubernetes, Kueue, HAMi, Kubeflow와 Agent Runtime이 만드는 실행 증거를 한 화면에서 추적합니다.</p>
+              <div class="hero-actions">
+                <button class="primary-button light" type="button" data-action="go-submit">Science Job 제출 <span aria-hidden="true">→</span></button>
+                <button class="hero-quiet" type="button" data-view="topology">물리 배치 보기</button>
+              </div>
             </div>
-            <button class="primary-button light" type="button" data-action="go-submit">작업 제출하기 <span aria-hidden="true">→</span></button>
-            <div class="hero-orbit" aria-hidden="true"><span></span><span></span><i></i></div>
+            <div class="fleet-instrument">
+              <div class="instrument-head"><span>FLEET / ACTUAL HARDWARE</span><span id="fleet-health">동기화 중</span></div>
+              <div id="fleet-strip" class="fleet-strip" aria-live="polite"><span class="skeleton"></span></div>
+              <dl class="fleet-totals">
+                <div><dt>CPU</dt><dd id="fleet-cpu">—</dd></div>
+                <div><dt>MEMORY</dt><dd id="fleet-memory">—</dd></div>
+                <div><dt>PHYSICAL GPU</dt><dd id="fleet-gpu">—</dd></div>
+                <div><dt>ARCH</dt><dd id="fleet-arch">—</dd></div>
+              </dl>
+            </div>
           </section>
 
-          <section class="stats-grid" aria-label="운영 요약">
-            <article class="stat-card"><div class="stat-top"><span>전체 작업</span><span class="metric-icon blue">J</span></div><strong id="stat-total">—</strong><small id="stat-total-note">불러오는 중</small></article>
-            <article class="stat-card"><div class="stat-top"><span>실행 중</span><span class="metric-icon green">R</span></div><strong id="stat-running">—</strong><small>현재 Queue 승인 작업</small></article>
-            <article class="stat-card"><div class="stat-top"><span>대기 중</span><span class="metric-icon orange">Q</span></div><strong id="stat-pending">—</strong><small>Quota 또는 자원 대기</small></article>
-            <article class="stat-card"><div class="stat-top"><span>GPU 노드</span><span class="metric-icon purple">G</span></div><strong id="stat-gpu">—</strong><small id="stat-gpu-note">Resource Catalog</small></article>
+          <section id="operations-proof-rail" class="operations-proof-rail" aria-label="실시간 실행 증거 경로">
+            <article><span class="proof-index">01</span><div><small>INTAKE</small><strong>Science API</strong><span id="proof-api">확인 중</span></div></article>
+            <i aria-hidden="true"></i>
+            <article><span class="proof-index">02</span><div><small>ADMISSION</small><strong>Kueue</strong><span id="proof-queue">확인 중</span></div></article>
+            <i aria-hidden="true"></i>
+            <article><span class="proof-index">03</span><div><small>LINEAGE</small><strong>Kubeflow</strong><span id="proof-kubeflow">확인 중</span></div></article>
+            <i aria-hidden="true"></i>
+            <article><span class="proof-index">04</span><div><small>EXECUTION</small><strong>GPU Fabric</strong><span id="proof-gpu">확인 중</span></div></article>
           </section>
 
-          <div class="overview-grid">
+          <section class="ops-kpis" aria-label="실시간 작업과 압력">
+            <article><small>WORKLOADS</small><strong id="stat-total">—</strong><span id="stat-total-note">불러오는 중</span></article>
+            <article><small>RUNNING</small><strong id="stat-running">—</strong><span>현재 실행</span></article>
+            <article><small>QUEUE</small><strong id="stat-pending">—</strong><span>대기 중</span></article>
+            <article><small>GPU NODES</small><strong id="stat-gpu">—</strong><span id="stat-gpu-note">Resource Catalog</span></article>
+            <article class="pressure-kpi"><small>FLEET PRESSURE</small><strong id="fleet-pressure">—</strong><span>CPU · Memory 평균</span></article>
+          </section>
+
+          <div class="command-grid">
+            <section class="panel gpu-observatory">
+              <div class="panel-heading"><div><p class="eyebrow">DCGM · PHYSICAL SIGNAL</p><h2>GPU 관측소</h2><p>논리 할당과 물리 사용량을 분리해 표시합니다.</p></div><span id="gpu-health" class="status-pill neutral">확인 중</span></div>
+              <div id="gpu-telemetry" class="gpu-telemetry" aria-live="polite"><span class="skeleton"></span></div>
+            </section>
+
+            <section class="panel platform-panel">
+              <div class="panel-heading"><div><p class="eyebrow">CONTROL PLANE</p><h2>플랫폼 상태</h2></div><span id="platform-health" class="status-pill neutral">확인 중</span></div>
+              <div id="platform-components" class="platform-components" aria-live="polite"></div>
+            </section>
+
+            <section class="panel queue-panel">
+              <div class="panel-heading"><div><p class="eyebrow">KUEUE · ADMISSION</p><h2>Queue 판정</h2></div><span id="queue-health" class="status-pill neutral">확인 중</span></div>
+              <div id="queue-instrument" class="queue-instrument"></div>
+            </section>
+
+            <section class="panel trust-panel">
+              <div class="panel-heading"><div><p class="eyebrow">AGENT TRUST BOUNDARY</p><h2>실행 안전장치</h2></div><span class="status-pill succeeded">ENFORCED</span></div>
+              <div class="trust-controls">
+                <div><span>01</span><p><strong>No cluster credential</strong><small>Agent는 Science API만 호출</small></p></div>
+                <div><span>02</span><p><strong>Server-side scope</strong><small>Tenant·Namespace·SA 고정</small></p></div>
+                <div><span>03</span><p><strong>Sanitized audit</strong><small>Token·Secret 마스킹</small></p></div>
+              </div>
+            </section>
+
             <section class="panel recent-panel">
-              <div class="panel-heading"><div><p class="eyebrow">RECENT</p><h2>최근 작업</h2></div><button class="text-button" type="button" data-action="go-jobs">모두 보기</button></div>
+              <div class="panel-heading"><div><p class="eyebrow">RECENT EVIDENCE</p><h2>최근 작업</h2></div><button class="text-button" type="button" data-action="go-jobs">모두 보기</button></div>
               <div id="recent-jobs" class="job-list" aria-live="polite"></div>
             </section>
+
             <section class="panel resource-panel">
-              <div class="panel-heading"><div><p class="eyebrow">CAPACITY</p><h2>자원 상태</h2></div><span id="catalog-health" class="status-pill neutral">확인 중</span></div>
+              <div class="panel-heading"><div><p class="eyebrow">LOGICAL CAPACITY</p><h2>HAMi 할당</h2></div><span id="catalog-health" class="status-pill neutral">확인 중</span></div>
               <div id="resource-content" class="resource-content"></div>
             </section>
           </div>

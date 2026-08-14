@@ -1,8 +1,8 @@
-# Workspace live topology overlay
+# Workspace operations showcase overlay
 
-This package adds a live `Site → Node → GPU → Workload` view to NAIS Science Workspace and joins a Science Job detail with its actual HAMi allocation. It also owns the existing `science-job-portal-navigation` ConfigMap so the live navigation links and topology UI are deployed together.
+This package adds an interview-ready live operations dashboard to NAIS Science Workspace. It combines the existing `Site → Node → GPU → Workload` placement view with real Kubernetes capacity, Kueue admission, Prometheus component health, DCGM physical GPU telemetry and the Agent trust boundary. Science Job detail remains joined to its observed HAMi allocation.
 
-The canonical source files under `services/science_os` are root-owned in this workspace, so the changed files are kept as an explicit image overlay. The runtime image is based on `0.3.1` and published as `0.3.2-topology`.
+The canonical source files under `services/science_os` are root-owned in this workspace, so the changed files are kept as an explicit image overlay. The runtime image is based on `0.3.1` and published as `0.3.4-showcase`.
 
 ## Build
 

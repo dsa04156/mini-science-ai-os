@@ -5,6 +5,7 @@ const state = {
   jobs: [],
   resources: null,
   topology: null,
+  operations: null,
   activeView: "overview",
   statusFilter: "all",
   search: "",
@@ -118,7 +119,6 @@ function showWorkspace() {
   workspace.hidden = false;
   const tenant = String(state.config.tenant || "unknown").toUpperCase();
   byId("tenant-sidebar").textContent = tenant;
-  byId("hero-tenant").textContent = tenant;
   byId("platform-version").textContent = `${state.config.edition || tenant} Workspace · v${state.config.version || "unknown"}`;
   byId("summary-tenant").textContent = tenant;
   byId("summary-namespace").textContent = state.config.namespace || "—";
@@ -135,6 +135,7 @@ async function reconnectPortal() {
   state.jobs = [];
   state.resources = null;
   state.topology = null;
+  state.operations = null;
   if (dialog.open) dialog.close();
   showConnection();
   try {
@@ -204,6 +205,110 @@ function renderResources() {
     <div class="resource-main"><strong>${escapeHtml(state.resources.readyNodeCount ?? "—")}</strong><span>/ ${escapeHtml(state.resources.nodeCount ?? "—")} nodes ready</span></div>
     <div class="capacity-row"><div class="capacity-label"><span>GPU Memory 논리 할당</span><span>${hasCapacity ? `${allocated.toLocaleString()} / ${total.toLocaleString()} MiB` : "확인 불가"}</span></div><progress class="capacity-track" max="100" value="${percent.toFixed(1)}">${percent.toFixed(1)}%</progress></div>
     <div class="resource-meta"><div><small>GPU 모델</small><strong>${escapeHtml(displayValue(accelerator.model))}</strong></div><div><small>할당 모드</small><strong>${escapeHtml(displayValue(accelerator.mode))}</strong></div><div><small>Count Resource</small><strong>${escapeHtml(displayValue(state.resources.resourceNames?.count))}</strong></div><div><small>GPU Node</small><strong>${escapeHtml(displayValue(gpu?.node))}</strong></div></div>`;
+}
+
+function finiteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function fixedMetric(value, digits = 0, suffix = "") {
+  const number = finiteNumber(value);
+  return number === null ? "—" : `${number.toFixed(digits)}${suffix}`;
+}
+
+function compactNodeName(value) {
+  const text = String(value || "");
+  const match = text.match(/-(dev|ser)(\d{4})-/i);
+  if (!match) return text;
+  const role = match[1].toLowerCase() === "ser" ? "GPU" : "EDGE";
+  return `${role} ${Number(match[2])}`;
+}
+
+function componentByName(name) {
+  return state.operations?.platform?.components?.find((item) => item.name === name);
+}
+
+function proofStatus(elementId, ready, readyText, fallbackText = "확인 불가") {
+  const element = byId(elementId);
+  element.textContent = ready === true ? readyText : ready === false ? "DEGRADED" : fallbackText;
+  element.closest("article").dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
+}
+
+function renderGpuTelemetry() {
+  const target = byId("gpu-telemetry");
+  const devices = state.operations?.gpu?.devices || [];
+  const health = byId("gpu-health");
+  if (!devices.length) {
+    health.textContent = "NO SIGNAL";
+    health.className = "status-pill neutral";
+    target.innerHTML = '<p class="notice">DCGM 또는 HAMi에서 물리 GPU 정보를 가져오지 못했습니다.</p>';
+    return;
+  }
+  const healthy = devices.filter((device) => device.health === true).length;
+  health.textContent = `${healthy}/${devices.length} LIVE`;
+  health.className = `status-pill ${healthy === devices.length ? "succeeded" : "pending"}`;
+  target.innerHTML = devices.map((device) => {
+    const used = finiteNumber(device.memoryUsedMiB);
+    const total = finiteNumber(device.memoryTotalMiB);
+    const memoryPercent = used !== null && total ? Math.max(0, Math.min(100, used / total * 100)) : 0;
+    const logical = device.logicalAllocation || {};
+    return `
+      <article class="gpu-instrument-card">
+        <header class="gpu-card-head"><div><small>${escapeHtml(device.node || "UNKNOWN NODE")}</small><strong>${escapeHtml(device.model || "NVIDIA GPU")}</strong><code>${escapeHtml(shortUuid(device.uuid))}</code></div><span>${device.health === true ? "HEALTHY" : "CHECK"}</span></header>
+        <div class="gpu-signal">
+          <div><small>GPU UTIL</small><strong>${escapeHtml(fixedMetric(device.utilizationPercent, 0, "%"))}</strong></div>
+          <div><small>TEMP</small><strong>${escapeHtml(fixedMetric(device.temperatureC, 0, "°C"))}</strong></div>
+          <div><small>POWER</small><strong>${escapeHtml(fixedMetric(device.powerWatts, 1, "W"))}</strong></div>
+        </div>
+        <div class="gpu-meter"><div class="gpu-meter-label"><span>Physical framebuffer</span><span>${used === null || total === null ? "—" : `${used.toLocaleString()} / ${total.toLocaleString()} MiB`}</span></div><progress class="gpu-meter-track" max="100" value="${memoryPercent.toFixed(1)}">${memoryPercent.toFixed(1)}%</progress></div>
+        <div class="gpu-logical"><span>HAMi logical allocation</span><strong>${escapeHtml(logical.workloadCount || 0)} workload · ${escapeHtml(logical.memoryMiB || 0)} MiB · ${escapeHtml(logical.corePercent || 0)}%</strong></div>
+      </article>`;
+  }).join("");
+}
+
+function renderOperations() {
+  const operations = state.operations;
+  if (!operations) {
+    byId("operations-age").textContent = "신호 없음";
+    byId("fleet-health").textContent = "UNAVAILABLE";
+    byId("fleet-strip").innerHTML = '<p class="notice">운영 데이터를 불러오지 못했습니다.</p>';
+    byId("platform-components").innerHTML = '<p class="notice">구성요소 상태를 확인할 수 없습니다.</p>';
+    byId("queue-instrument").innerHTML = '<p class="notice">Queue 상태를 확인할 수 없습니다.</p>';
+    renderGpuTelemetry();
+    return;
+  }
+  const fleet = operations.fleet || {};
+  const nodes = (operations.topology?.sites || []).flatMap((site) => site.nodes || []);
+  byId("operations-age").textContent = `${formatDate(operations.generatedAt)} 수집`;
+  byId("operations-ready").textContent = `${fleet.readyNodeCount ?? "—"}/${fleet.nodeCount ?? "—"}`;
+  byId("fleet-health").textContent = fleet.readyNodeCount === fleet.nodeCount ? "ALL SYSTEMS NOMINAL" : "ATTENTION REQUIRED";
+  byId("fleet-cpu").textContent = `${fixedMetric(fleet.cpuCores, 0)} cores`;
+  byId("fleet-memory").textContent = `${fixedMetric(fleet.memoryGiB, 1)} GiB`;
+  byId("fleet-gpu").textContent = `${fleet.physicalGpuCount ?? "—"} devices`;
+  byId("fleet-arch").textContent = Object.entries(fleet.architectures || {}).map(([name, count]) => `${name}×${count}`).join(" · ") || "—";
+  byId("fleet-pressure").textContent = `${fixedMetric(fleet.averageCpuPercent, 1, "%")} · ${fixedMetric(fleet.averageMemoryPercent, 1, "%")}`;
+  byId("fleet-strip").innerHTML = nodes.map((node) => `<article class="fleet-node ${node.accelerator ? "gpu" : ""}" title="${escapeHtml(node.node)}"><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><strong>${escapeHtml(compactNodeName(node.node))}</strong></article>`).join("");
+
+  const apiComponent = componentByName("Science API");
+  const kubeflowComponent = componentByName("Kubeflow API");
+  proofStatus("proof-api", apiComponent ? apiComponent.status === "ready" : null, `${apiComponent?.ready}/${apiComponent?.desired} READY`);
+  proofStatus("proof-queue", operations.queue?.status === "ready" ? true : operations.queue?.status === "degraded" ? false : null, `${operations.queue?.pendingWorkloads || 0} PENDING`);
+  proofStatus("proof-kubeflow", kubeflowComponent ? kubeflowComponent.status === "ready" : null, `${kubeflowComponent?.ready}/${kubeflowComponent?.desired} READY`);
+  proofStatus("proof-gpu", operations.gpu?.deviceCount ? operations.gpu.healthyDeviceCount === operations.gpu.deviceCount : null, `${operations.gpu?.healthyDeviceCount}/${operations.gpu?.deviceCount} HEALTHY`);
+
+  const platform = operations.platform || {};
+  byId("platform-health").textContent = `${platform.readyCount ?? "—"}/${platform.componentCount ?? "—"} READY`;
+  byId("platform-health").className = `status-pill ${platform.readyCount === platform.componentCount ? "succeeded" : "pending"}`;
+  byId("platform-components").innerHTML = (platform.components || []).map((component) => `
+    <div class="component-row"><span class="component-light ${escapeHtml(component.status)}"></span><div><strong>${escapeHtml(component.name)}</strong><small>${escapeHtml(component.namespace)} / ${escapeHtml(component.workload)}</small></div><span>${component.ready ?? "—"}/${component.desired ?? "—"}</span></div>`).join("");
+
+  const queue = operations.queue || {};
+  byId("queue-health").textContent = String(queue.status || "unknown").toUpperCase();
+  byId("queue-health").className = `status-pill ${queue.status === "ready" ? "succeeded" : queue.status === "degraded" ? "pending" : "neutral"}`;
+  byId("queue-instrument").innerHTML = `<div class="queue-primary"><small>CLUSTER QUEUE</small><strong>${escapeHtml(queue.name || "—")}</strong><span>${queue.status === "ready" ? "새 Workload 입장 가능" : "상태 확인 필요"}</span></div><div class="queue-counts"><div><small>PENDING</small><strong>${escapeHtml(queue.pendingWorkloads ?? "—")}</strong></div><div><small>FINISHED</small><strong>${escapeHtml(queue.finishedWorkloads ?? "—")}</strong></div></div>`;
+  renderGpuTelemetry();
 }
 
 function shortUuid(value) {
@@ -303,6 +408,7 @@ function renderJobs() {
 }
 
 function renderAll() {
+  renderOperations();
   renderOverview();
   renderTopology();
   renderJobs();
@@ -314,12 +420,13 @@ async function refreshAll({ quiet = false } = {}) {
   const button = byId("refresh-button");
   button.textContent = "↻";
   button.style.transform = "rotate(35deg)";
-  const [jobsResult, topologyResult] = await Promise.allSettled([api("/v1/jobs"), api("/v1/topology")]);
+  const [jobsResult, operationsResult] = await Promise.allSettled([api("/v1/jobs"), api("/v1/operations")]);
   if (jobsResult.status === "fulfilled") state.jobs = jobsResult.value.jobs || [];
   else if (!quiet) toast(`작업 목록: ${jobsResult.reason.message}`, "error");
-  state.topology = topologyResult.status === "fulfilled" ? topologyResult.value : null;
+  state.operations = operationsResult.status === "fulfilled" ? operationsResult.value : null;
+  state.topology = state.operations?.topology || null;
   state.resources = state.topology;
-  if (topologyResult.status === "rejected" && !quiet) toast(`토폴로지: ${topologyResult.reason.message}`, "error");
+  if (operationsResult.status === "rejected" && !quiet) toast(`운영 데이터: ${operationsResult.reason.message}`, "error");
   renderAll();
   byId("last-updated").textContent = `${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date())} 동기화`;
   button.style.transform = "";

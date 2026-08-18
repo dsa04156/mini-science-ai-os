@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mlflow-functional-demo
+  namespace: science-ai-mlops
+  labels:
+    app.kubernetes.io/name: mlflow-functional-demo
+    app.kubernetes.io/part-of: mlflow-functional-demo
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mlflow-functional-demo
+        app.kubernetes.io/part-of: mlflow-functional-demo
+        science-ai.io/managed-by: mini-science-ai-os
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-mlflow
+          image: ghcr.io/mlflow/mlflow:v3.13.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+            - |
+              import time
+              import urllib.request
+
+              url = "http://mlflow:5000/health"
+              for attempt in range(60):
+                  try:
+                      with urllib.request.urlopen(url, timeout=3) as response:
+                          if response.status == 200:
+                              raise SystemExit(0)
+                  except Exception:
+                      if attempt == 59:
+                          raise
+                      time.sleep(2)
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+      containers:
+        - name: demo
+          image: ghcr.io/mlflow/mlflow:v3.13.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/demo/run.py"]
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow:5000
+            - name: MLFLOW_HTTP_REQUEST_TIMEOUT
+              value: "5"
+            - name: MLFLOW_HTTP_REQUEST_MAX_RETRIES
+              value: "3"
+            - name: USER
+              value: mlflow
+            - name: LOGNAME
+              value: mlflow
+            - name: GIT_PYTHON_REFRESH
+              value: quiet
+            - name: HOME
+              value: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: script
+              mountPath: /demo
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: script
+          configMap:
+            name: mlflow-functional-demo-script
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi

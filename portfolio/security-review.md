@@ -2,7 +2,7 @@
 
 ## 요약
 
-FastAPI, Vanilla JavaScript, Kubernetes Manifest와 새 SLURM/운영 훈련 경로를
+FastAPI, Vanilla JavaScript, Kubernetes Manifest와 MLOps/운영 훈련 경로를
 검토했다. 확인된 Critical/High 취약점은 없다. 기존 제품 문서가 이미 공개한
 두 개의 Medium 운영 위험과 두 개의 Low 방어 심층화 항목이 남는다.
 
@@ -62,12 +62,12 @@ FastAPI, Vanilla JavaScript, Kubernetes Manifest와 새 SLURM/운영 훈련 경�
 - Production Profile에서 OpenAPI/Docs가 비활성화된다.
 - Portal Cookie는 HttpOnly, SameSite Strict이며 Secure Flag는 TLS 여부로 분리된다.
 - Portal CSP, Referrer Policy, NoSniff, Frame Deny가 설정된다.
-- SLURM PoC는 `shell=False`, 인자 배열, Identifier/Script Root Allowlist를 사용한다.
+- MLflow는 non-root, capability drop, RuntimeDefault seccomp와 내부망 Ingress를 사용한다.
 - 새 복구 훈련은 Source DB/PVC에 Restore하지 않고 고정 격리 Namespace만 사용한다.
 
 ## 이번 작업에서 해결한 항목
 
 - `pip-audit`가 `pytest 8.4.2`의 `PYSEC-2026-1845`를 탐지해 개발 의존성을
   수정 버전 `9.0.3`으로 올렸다.
-- 갱신 후 제품·포트폴리오 테스트 24개와 Runtime/Development 의존성 감사를
+- 갱신 후 제품·포트폴리오 테스트와 Runtime/Development 의존성 감사를
   다시 실행하는 CI Gate를 추가했다.

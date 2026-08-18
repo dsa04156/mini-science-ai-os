@@ -15,6 +15,7 @@
 - PASS: MCP 자기 Job 제출·조회·취소와 Audit JSON
 - PASS: ETRI 연구자 포털 자동 세션, Job 제출·조회·Metric·Artifact·취소, 데스크톱/모바일 UI
 - PASS: 실제 5개 노드·2개 GPU의 Kueue/HAMi/Prometheus/DCGM 운영 대시보드
+- PASS: MLflow 3.13 Run/Metric/Artifact/Model Registry와 Grafana 라이브 Dashboard
 - PASS: ETRI 전용 Ingress, 2-replica API/MCP, PDB, Rate Limit·Security Header
 - READY: `trusted-network` 내부 제품 모드와 `192.168.0.0/24` Ingress 접근 제한
 - 운영 제약: Flannel NetworkPolicy 강제 여부와 Argo CD Git Sync는 별도 개선 항목
@@ -27,7 +28,7 @@
 
 직접 하나씩 확인하려면 [GUIDEBOOK.md](GUIDEBOOK.md)를 따라가십시오. 조회, 포털 CPU/GPU Job, Kubeflow, MCP, 직접 API, 로컬 테스트와 정리 순서로 구성돼 있습니다.
 
-NAIS 기술직-1 직무요건과 구현 증거의 대응, SLURM PoC, 복구·가용성 훈련,
+NAIS 기술직-1 직무요건과 구현 증거의 대응, MLflow/Grafana 기능 실증, 복구·가용성 훈련,
 10분 발표와 라이브 데모 동선은 [portfolio](portfolio)에 모았습니다.
 
 ```bash
@@ -113,7 +114,7 @@ tests/         Unit/API/Manifest 테스트
 docs/          설계·보안·운영·실행 증거
 documentation/ 제품 인수인계용 Architecture/Flow/Permission/Variable/Test/Automation Map
 workspace-topology/ 라이브 토폴로지 API·Workspace UI·배포 Overlay
-portfolio/      NAIS 기술직-1 추적표·발표·SLURM·복구·가용성·보안 증거
+portfolio/      NAIS 기술직-1 추적표·발표·MLOps·복구·가용성·보안 증거
 ```
 
 운영 절차는 [runbook.md](docs/runbook.md), 재현 조건은 [reproducibility.md](docs/reproducibility.md), 보안 제한은 [security-decisions.md](docs/security-decisions.md)를 참고하십시오.

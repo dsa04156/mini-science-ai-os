@@ -30,7 +30,5 @@ bash -n scripts/*.sh portfolio/scripts/*.sh
 bash portfolio/scripts/security-check.sh
 bash portfolio/scripts/recovery-drill.sh plan >/dev/null
 bash portfolio/scripts/resilience-drill.sh plan >/dev/null
-python3 -m portfolio.slurm_adapter plan \
-  --name ci-smoke --script portfolio/examples/train.sh --cpus 2 --memory-mb 1024 >/dev/null
 
 printf 'Portfolio check passed.\n'

@@ -49,19 +49,22 @@ kubectl get deploy,job,pod,pvc -n science-ai-mlops
 kubectl logs -n science-ai-mlops job/mlflow-functional-demo
 ```
 
-MLflow `Model training → Runs`에서 `functional-smoke` Run과 `mae=0.125`, parameter,
-artifact를 보여준다. 이어서 `Model registry`에서 `nais-demo-mean-baseline` v3와
-`champion` alias를 확인한다. 이 구성은 기능 실증용 SQLite/PVC 단일 인스턴스이며
-고가용성 주장은 하지 않는다.
+Kubeflow Pipelines의 `NAIS integration demos`에서 `nais-kfp-mlflow-integration`
+Run이 성공했고 component 입력에 `mae=0.09`, threshold `0.1`, MLflow tracking URI가
+표시되는 것을 먼저 보여준다. 이어 MLflow `Model training → Runs`의
+`kubeflow-train-register` Run에서 parameter, metric, artifact를 확인하고 Model Registry의
+`nais-kfp-mean-baseline` v1과 `candidate` alias를 연결한다. 이 구성은 기능 실증용
+SQLite/PVC 단일 인스턴스이며 고가용성 주장은 하지 않는다.
 
 ### 4:15-5:15 — Grafana 실제 관측값
 
-Grafana의 `NAIS Functional Demo — MLflow & GPU Operations` Dashboard에서 다음을
+Grafana의 `NAIS Functional Demo — Kubeflow, MLflow & GPU Operations` Dashboard에서 다음을
 한 화면으로 보여준다.
 
 - MLflow tracking server, Functional run, MinIO가 각각 `1`
 - Ready cluster nodes가 `5`
 - RTX 5060 Ti/5080의 DCGM GPU 사용률과 framebuffer 사용량
+- KFP → MLflow 성공 `1`과 실제 component 실행시간
 - Kueue pending workload와 Kubeflow Pipelines UI 상태
 
 ### 5:15-6:15 — Agent 권한 경계

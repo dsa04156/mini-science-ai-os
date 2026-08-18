@@ -15,7 +15,7 @@
 - PASS: MCP 자기 Job 제출·조회·취소와 Audit JSON
 - PASS: ETRI 연구자 포털 자동 세션, Job 제출·조회·Metric·Artifact·취소, 데스크톱/모바일 UI
 - PASS: 실제 5개 노드·2개 GPU의 Kueue/HAMi/Prometheus/DCGM 운영 대시보드
-- PASS: MLflow 3.13 Run/Metric/Artifact/Model Registry와 Grafana 라이브 Dashboard
+- PASS: KFP CPU Pipeline → MLflow 3.13 Run/Artifact/Model candidate → Grafana 라이브 상태
 - PASS: ETRI 전용 Ingress, 2-replica API/MCP, PDB, Rate Limit·Security Header
 - READY: `trusted-network` 내부 제품 모드와 `192.168.0.0/24` Ingress 접근 제한
 - 운영 제약: Flannel NetworkPolicy 강제 여부와 Argo CD Git Sync는 별도 개선 항목

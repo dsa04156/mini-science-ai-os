@@ -90,9 +90,16 @@
                 <button class="hero-quiet" type="button" data-view="topology">물리 배치 보기</button>
               </div>
             </div>
-            <div class="fleet-instrument">
-              <div class="instrument-head"><span>FLEET / ACTUAL HARDWARE</span><span id="fleet-health">동기화 중</span></div>
-              <div id="fleet-strip" class="fleet-strip" aria-live="polite"><span class="skeleton"></span></div>
+            <div id="request-evidence-pipeline" class="request-evidence-instrument">
+              <div class="instrument-head"><span>REQUEST-TO-EVIDENCE PIPELINE</span><span id="fleet-health">동기화 중</span></div>
+              <ol class="request-evidence-flow" aria-label="Science Job 요청부터 실행 증거까지의 흐름">
+                <li><span>01 · REQUEST</span><strong>요청<br>Workspace</strong><small>READY TO SUBMIT</small></li>
+                <li><span>02 · VALIDATE</span><strong>검증<br>Science API</strong><small id="proof-api">확인 중</small></li>
+                <li><span>03 · LINEAGE</span><strong>기록<br>Kubeflow</strong><small id="proof-kubeflow">확인 중</small></li>
+                <li><span>04 · ADMIT</span><strong>입장<br>Kueue</strong><small id="proof-queue">확인 중</small></li>
+                <li><span>05 · EXECUTE</span><strong>실행<br>Scheduler</strong><small id="proof-gpu">확인 중</small></li>
+                <li><span>06 · EVIDENCE</span><strong>증거<br>Metric · Artifact</strong><small>MLFLOW · GRAFANA</small></li>
+              </ol>
               <dl class="fleet-totals">
                 <div><dt>CPU</dt><dd id="fleet-cpu">—</dd></div>
                 <div><dt>MEMORY</dt><dd id="fleet-memory">—</dd></div>
@@ -100,16 +107,6 @@
                 <div><dt>ARCH</dt><dd id="fleet-arch">—</dd></div>
               </dl>
             </div>
-          </section>
-
-          <section id="operations-proof-rail" class="operations-proof-rail" aria-label="실시간 실행 증거 경로">
-            <article><span class="proof-index">01</span><div><small>INTAKE</small><strong>Science API</strong><span id="proof-api">확인 중</span></div></article>
-            <i aria-hidden="true"></i>
-            <article><span class="proof-index">02</span><div><small>ADMISSION</small><strong>Kueue</strong><span id="proof-queue">확인 중</span></div></article>
-            <i aria-hidden="true"></i>
-            <article><span class="proof-index">03</span><div><small>LINEAGE</small><strong>Kubeflow</strong><span id="proof-kubeflow">확인 중</span></div></article>
-            <i aria-hidden="true"></i>
-            <article><span class="proof-index">04</span><div><small>EXECUTION</small><strong>GPU Fabric</strong><span id="proof-gpu">확인 중</span></div></article>
           </section>
 
           <section id="mlops-evidence" class="mlops-evidence" aria-labelledby="mlops-evidence-title">

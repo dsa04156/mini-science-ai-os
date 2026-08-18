@@ -60,7 +60,7 @@ make destroy-demo
 - `make resilience-plan`: Pod 변경 없이 PDB 기반 가용성 Drill 절차 출력
 - `make destroy-demo`: 프로젝트 Demo Job만 삭제하며 PVC·운영 구성요소는 보존
 
-Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 기본 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이고, 운영 대시보드 Overlay는 `0.3.8-neutral-ui` (`sha256:04866581c353372a173ffce26bb2aae93cf1b4b4d66214eaded605ef21e465a5`)로 배포합니다.
+Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 기본 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이고, 운영 대시보드 Overlay는 `0.3.11-evidence-hero` (`sha256:5c7639114fd32f13d019855d386794d9123ae326d539d390b69e7e65e868090a`)로 배포합니다.
 
 ## 접근
 

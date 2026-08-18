@@ -300,7 +300,7 @@ function renderMlopsEvidence() {
 function proofStatus(elementId, ready, readyText, fallbackText = "확인 불가") {
   const element = byId(elementId);
   element.textContent = ready === true ? readyText : ready === false ? "DEGRADED" : fallbackText;
-  element.closest("article").dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
+  element.closest("li, article").dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
 }
 
 function renderGpuTelemetry() {
@@ -340,7 +340,10 @@ function renderOperations() {
   if (!operations) {
     byId("operations-age").textContent = "신호 없음";
     byId("fleet-health").textContent = "UNAVAILABLE";
-    byId("fleet-strip").innerHTML = '<p class="notice">운영 데이터를 불러오지 못했습니다.</p>';
+    proofStatus("proof-api", null, "UNAVAILABLE");
+    proofStatus("proof-queue", null, "UNAVAILABLE");
+    proofStatus("proof-kubeflow", null, "UNAVAILABLE");
+    proofStatus("proof-gpu", null, "UNAVAILABLE");
     byId("platform-components").innerHTML = '<p class="notice">구성요소 상태를 확인할 수 없습니다.</p>';
     byId("queue-instrument").innerHTML = '<p class="notice">Queue 상태를 확인할 수 없습니다.</p>';
     renderMlopsEvidence();
@@ -348,7 +351,6 @@ function renderOperations() {
     return;
   }
   const fleet = operations.fleet || {};
-  const nodes = (operations.topology?.sites || []).flatMap((site) => site.nodes || []);
   byId("operations-age").textContent = `${formatDate(operations.generatedAt)} 수집`;
   byId("operations-ready").textContent = `${fleet.readyNodeCount ?? "—"}/${fleet.nodeCount ?? "—"}`;
   byId("fleet-health").textContent = fleet.readyNodeCount === fleet.nodeCount ? "ALL SYSTEMS NOMINAL" : "ATTENTION REQUIRED";
@@ -357,7 +359,6 @@ function renderOperations() {
   byId("fleet-gpu").textContent = `${fleet.physicalGpuCount ?? "—"} devices`;
   byId("fleet-arch").textContent = Object.entries(fleet.architectures || {}).map(([name, count]) => `${name}×${count}`).join(" · ") || "—";
   byId("fleet-pressure").textContent = `${fixedMetric(fleet.averageCpuPercent, 1, "%")} · ${fixedMetric(fleet.averageMemoryPercent, 1, "%")}`;
-  byId("fleet-strip").innerHTML = nodes.map((node) => `<article class="fleet-node ${node.accelerator ? "gpu" : ""}" title="${escapeHtml(publicIdentifier(node.node))}"><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><strong>${escapeHtml(compactNodeName(node.node))}</strong></article>`).join("");
 
   const apiComponent = componentByName("Science API");
   const kubeflowComponent = componentByName("Kubeflow API");

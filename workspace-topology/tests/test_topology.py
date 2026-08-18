@@ -175,7 +175,7 @@ def test_portal_requests_operations_dashboard_data() -> None:
     javascript = (portal / "portal.js").read_text(encoding="utf-8")
     stylesheet = (portal / "portal.css").read_text(encoding="utf-8")
 
-    assert 'id="operations-proof-rail"' in html
+    assert 'id="request-evidence-pipeline"' in html
     assert 'id="mlops-evidence"' in html
     assert 'id="gpu-telemetry"' in html
     assert "MLflow" in html
@@ -189,5 +189,9 @@ def test_portal_requests_operations_dashboard_data() -> None:
     assert ".component-row strong { font-size:13px; }" in stylesheet
     assert re.search(r"\bETRI\b", html) is None
     assert "ETRI SCIENCE JOB" not in javascript
+    assert "REQUEST-TO-EVIDENCE PIPELINE" in html
+    assert "Metric · Artifact" in html
+    assert 'id="fleet-strip"' not in html
+    assert 'byId("fleet-strip")' not in javascript
     assert "publicIdentifier" in javascript
     assert "publicIdentifier(gpu?.node)" in javascript

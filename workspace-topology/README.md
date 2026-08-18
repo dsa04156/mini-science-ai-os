@@ -2,7 +2,7 @@
 
 This package adds an interview-ready live operations dashboard to NAIS Science Workspace. It combines the existing `Site → Node → GPU → Workload` placement view with real Kubernetes capacity, Kueue admission, Prometheus component health, DCGM physical GPU telemetry and the Agent trust boundary. The overview also presents a live `Kubeflow → MLflow Run → candidate model → Grafana` evidence spine sourced from the real KFP and MLflow APIs. Science Job detail remains joined to its observed HAMi allocation.
 
-The canonical source files under `services/science_os` are root-owned in this workspace, so the changed files are kept as an explicit image overlay. The runtime image is based on `0.3.1` and published as `0.3.8-neutral-ui`.
+The canonical source files under `services/science_os` are root-owned in this workspace, so the changed files are kept as an explicit image overlay. The runtime image is based on `0.3.1` and published as `0.3.11-evidence-hero`.
 
 ## Build
 

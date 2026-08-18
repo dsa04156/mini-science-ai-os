@@ -32,6 +32,13 @@ function displayValue(value, fallback = "확인 불가") {
   return value === null || value === undefined || value === "" ? fallback : String(value);
 }
 
+function publicIdentifier(value, fallback = "—") {
+  return displayValue(value, fallback)
+    .replaceAll(/tenant-etri/gi, "internal-workspace")
+    .replaceAll(/etri-lab/gi, "research-lab")
+    .replaceAll(/etri/gi, "lab");
+}
+
 function statusClass(status) {
   const value = String(status || "pending").toLowerCase();
   if (value === "submitting") return "submitted";
@@ -117,11 +124,10 @@ function showConnection(message = "현재 기관의 자원과 실행 이력을 �
 function showWorkspace() {
   loginView.hidden = true;
   workspace.hidden = false;
-  const tenant = String(state.config.tenant || "unknown").toUpperCase();
-  byId("tenant-sidebar").textContent = tenant;
-  byId("platform-version").textContent = `${state.config.edition || tenant} Workspace · v${state.config.version || "unknown"}`;
-  byId("summary-tenant").textContent = tenant;
-  byId("summary-namespace").textContent = state.config.namespace || "—";
+  byId("tenant-sidebar").textContent = "INTERNAL";
+  byId("platform-version").textContent = `${state.config.edition || "Internal"} Workspace · v${state.config.version || "unknown"}`;
+  byId("summary-tenant").textContent = "INTERNAL";
+  byId("summary-namespace").textContent = publicIdentifier(state.config.namespace);
   byId("summary-queue").textContent = state.config.localQueue || "—";
   byId("summary-runtime").textContent = `${Math.round((state.config.limits?.jobMaxSeconds || 0) / 60)}분`;
   byId("image-input").value = state.config.defaultImage || "";
@@ -204,7 +210,7 @@ function renderResources() {
   target.innerHTML = `
     <div class="resource-main"><strong>${escapeHtml(state.resources.readyNodeCount ?? "—")}</strong><span>/ ${escapeHtml(state.resources.nodeCount ?? "—")} nodes ready</span></div>
     <div class="capacity-row"><div class="capacity-label"><span>GPU Memory 논리 할당</span><span>${hasCapacity ? `${allocated.toLocaleString()} / ${total.toLocaleString()} MiB` : "확인 불가"}</span></div><progress class="capacity-track" max="100" value="${percent.toFixed(1)}">${percent.toFixed(1)}%</progress></div>
-    <div class="resource-meta"><div><small>GPU 모델</small><strong>${escapeHtml(displayValue(accelerator.model))}</strong></div><div><small>할당 모드</small><strong>${escapeHtml(displayValue(accelerator.mode))}</strong></div><div><small>Count Resource</small><strong>${escapeHtml(displayValue(state.resources.resourceNames?.count))}</strong></div><div><small>GPU Node</small><strong>${escapeHtml(displayValue(gpu?.node))}</strong></div></div>`;
+    <div class="resource-meta"><div><small>GPU 모델</small><strong>${escapeHtml(displayValue(accelerator.model))}</strong></div><div><small>할당 모드</small><strong>${escapeHtml(displayValue(accelerator.mode))}</strong></div><div><small>Count Resource</small><strong>${escapeHtml(displayValue(state.resources.resourceNames?.count))}</strong></div><div><small>GPU Node</small><strong>${escapeHtml(publicIdentifier(gpu?.node))}</strong></div></div>`;
 }
 
 function finiteNumber(value) {
@@ -228,6 +234,67 @@ function compactNodeName(value) {
 
 function componentByName(name) {
   return state.operations?.platform?.components?.find((item) => item.name === name);
+}
+
+function serviceOrigin(lanHost, institutionHost) {
+  const host = location.hostname.endsWith(".10.254.192.217.nip.io") ? institutionHost : lanHost;
+  return `http://${host}`;
+}
+
+function compactEvidenceId(value) {
+  const text = String(value || "");
+  return text ? `${text.slice(0, 8)}…${text.slice(-4)}` : "—";
+}
+
+function evidenceStage(id, ready, label) {
+  const stage = byId(id);
+  stage.dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
+  const stateLabel = stage.querySelector(".evidence-copy span");
+  stateLabel.textContent = label;
+}
+
+function renderMlopsEvidence() {
+  const evidence = state.operations?.mlops || {};
+  const kfp = evidence.kfp || {};
+  const mlflow = evidence.mlflow || {};
+  const run = mlflow.run || {};
+  const model = mlflow.model || {};
+  const grafana = componentByName("Grafana");
+
+  const kfpReady = kfp.status === "ready" ? String(kfp.state).toUpperCase() === "SUCCEEDED" : null;
+  const runReady = mlflow.status === "ready" ? String(run.status).toUpperCase() === "FINISHED" : null;
+  const modelReady = mlflow.status === "ready" ? String(model.status).toUpperCase() === "READY" && model.alias === "candidate" : null;
+  const grafanaReady = grafana ? grafana.status === "ready" : null;
+
+  evidenceStage("evidence-kfp-link", kfpReady, kfp.status === "ready" ? String(kfp.state || "UNKNOWN").toUpperCase() : "UNAVAILABLE");
+  evidenceStage("evidence-run-link", runReady, mlflow.status === "ready" ? String(run.status || "UNKNOWN").toUpperCase() : "UNAVAILABLE");
+  evidenceStage("evidence-model-link", modelReady, modelReady ? `${model.alias} · v${model.version}` : mlflow.status === "ready" ? "CHECK" : "UNAVAILABLE");
+  evidenceStage("evidence-grafana-link", grafanaReady, grafana ? `${grafana.ready ?? "—"}/${grafana.desired ?? "—"} READY` : "UNAVAILABLE");
+
+  byId("evidence-kfp-id").textContent = compactEvidenceId(kfp.runId);
+  byId("evidence-kfp-id").title = kfp.runId || "";
+  byId("evidence-run-id").textContent = compactEvidenceId(run.runId);
+  byId("evidence-run-id").title = run.runId || "";
+  byId("evidence-model-id").textContent = model.name ? `${model.name} · v${model.version || "—"}` : "—";
+  byId("evidence-model-id").title = model.name || "";
+  byId("evidence-mae").textContent = finiteNumber(run.mae) === null ? "MAE —" : `MAE ${Number(run.mae).toFixed(2)}`;
+  byId("evidence-alias").textContent = model.alias ? `@${model.alias} · v${model.version}` : "—";
+  byId("evidence-duration").textContent = finiteNumber(kfp.durationSeconds) === null ? "—" : `${Number(kfp.durationSeconds)} sec`;
+
+  const updated = byId("evidence-updated");
+  const dot = document.createElement("span");
+  dot.className = "live-dot";
+  updated.replaceChildren(dot, document.createTextNode(evidence.generatedAt ? `${formatDate(evidence.generatedAt)} 검증` : "신호 없음"));
+
+  const kfpOrigin = serviceOrigin("kubeflow-pipelines.192.168.0.56.nip.io", "kubeflow-pipelines.10.254.192.217.nip.io");
+  const mlflowOrigin = serviceOrigin("mlflow.192.168.0.56.nip.io", "mlflow.10.254.192.217.nip.io");
+  const grafanaOrigin = serviceOrigin("grafana.192.168.0.56.sslip.io", "grafana.10.254.192.217.nip.io");
+  byId("evidence-kfp-link").href = kfp.runId ? `${kfpOrigin}/#/runs/details/${encodeURIComponent(kfp.runId)}` : kfpOrigin;
+  byId("evidence-run-link").href = mlflow.experimentId && run.runId ? `${mlflowOrigin}/#/experiments/${encodeURIComponent(mlflow.experimentId)}/runs/${encodeURIComponent(run.runId)}` : mlflowOrigin;
+  byId("evidence-model-link").href = model.name && model.version ? `${mlflowOrigin}/#/models/${encodeURIComponent(model.name)}/versions/${encodeURIComponent(model.version)}` : `${mlflowOrigin}/#/models`;
+  byId("evidence-grafana-link").href = `${grafanaOrigin}/d/nais-mlflow-functional-demo`;
+  const proofLink = document.querySelector(".evidence-facts > a");
+  proofLink.href = byId("evidence-run-link").href;
 }
 
 function proofStatus(elementId, ready, readyText, fallbackText = "확인 불가") {
@@ -256,7 +323,7 @@ function renderGpuTelemetry() {
     const logical = device.logicalAllocation || {};
     return `
       <article class="gpu-instrument-card">
-        <header class="gpu-card-head"><div><small>${escapeHtml(device.node || "UNKNOWN NODE")}</small><strong>${escapeHtml(device.model || "NVIDIA GPU")}</strong><code>${escapeHtml(shortUuid(device.uuid))}</code></div><span>${device.health === true ? "HEALTHY" : "CHECK"}</span></header>
+        <header class="gpu-card-head"><div><small>${escapeHtml(publicIdentifier(device.node, "UNKNOWN NODE"))}</small><strong>${escapeHtml(device.model || "NVIDIA GPU")}</strong><code>${escapeHtml(shortUuid(device.uuid))}</code></div><span>${device.health === true ? "HEALTHY" : "CHECK"}</span></header>
         <div class="gpu-signal">
           <div><small>GPU UTIL</small><strong>${escapeHtml(fixedMetric(device.utilizationPercent, 0, "%"))}</strong></div>
           <div><small>TEMP</small><strong>${escapeHtml(fixedMetric(device.temperatureC, 0, "°C"))}</strong></div>
@@ -276,6 +343,7 @@ function renderOperations() {
     byId("fleet-strip").innerHTML = '<p class="notice">운영 데이터를 불러오지 못했습니다.</p>';
     byId("platform-components").innerHTML = '<p class="notice">구성요소 상태를 확인할 수 없습니다.</p>';
     byId("queue-instrument").innerHTML = '<p class="notice">Queue 상태를 확인할 수 없습니다.</p>';
+    renderMlopsEvidence();
     renderGpuTelemetry();
     return;
   }
@@ -289,7 +357,7 @@ function renderOperations() {
   byId("fleet-gpu").textContent = `${fleet.physicalGpuCount ?? "—"} devices`;
   byId("fleet-arch").textContent = Object.entries(fleet.architectures || {}).map(([name, count]) => `${name}×${count}`).join(" · ") || "—";
   byId("fleet-pressure").textContent = `${fixedMetric(fleet.averageCpuPercent, 1, "%")} · ${fixedMetric(fleet.averageMemoryPercent, 1, "%")}`;
-  byId("fleet-strip").innerHTML = nodes.map((node) => `<article class="fleet-node ${node.accelerator ? "gpu" : ""}" title="${escapeHtml(node.node)}"><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><strong>${escapeHtml(compactNodeName(node.node))}</strong></article>`).join("");
+  byId("fleet-strip").innerHTML = nodes.map((node) => `<article class="fleet-node ${node.accelerator ? "gpu" : ""}" title="${escapeHtml(publicIdentifier(node.node))}"><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><strong>${escapeHtml(compactNodeName(node.node))}</strong></article>`).join("");
 
   const apiComponent = componentByName("Science API");
   const kubeflowComponent = componentByName("Kubeflow API");
@@ -302,12 +370,13 @@ function renderOperations() {
   byId("platform-health").textContent = `${platform.readyCount ?? "—"}/${platform.componentCount ?? "—"} READY`;
   byId("platform-health").className = `status-pill ${platform.readyCount === platform.componentCount ? "succeeded" : "pending"}`;
   byId("platform-components").innerHTML = (platform.components || []).map((component) => `
-    <div class="component-row"><span class="component-light ${escapeHtml(component.status)}"></span><div><strong>${escapeHtml(component.name)}</strong><small>${escapeHtml(component.namespace)} / ${escapeHtml(component.workload)}</small></div><span>${component.ready ?? "—"}/${component.desired ?? "—"}</span></div>`).join("");
+    <div class="component-row"><span class="component-light ${escapeHtml(component.status)}"></span><div><strong>${escapeHtml(component.name)}</strong><small>${escapeHtml(publicIdentifier(component.namespace))} / ${escapeHtml(publicIdentifier(component.workload))}</small></div><span>${component.ready ?? "—"}/${component.desired ?? "—"}</span></div>`).join("");
 
   const queue = operations.queue || {};
   byId("queue-health").textContent = String(queue.status || "unknown").toUpperCase();
   byId("queue-health").className = `status-pill ${queue.status === "ready" ? "succeeded" : queue.status === "degraded" ? "pending" : "neutral"}`;
   byId("queue-instrument").innerHTML = `<div class="queue-primary"><small>CLUSTER QUEUE</small><strong>${escapeHtml(queue.name || "—")}</strong><span>${queue.status === "ready" ? "새 Workload 입장 가능" : "상태 확인 필요"}</span></div><div class="queue-counts"><div><small>PENDING</small><strong>${escapeHtml(queue.pendingWorkloads ?? "—")}</strong></div><div><small>FINISHED</small><strong>${escapeHtml(queue.finishedWorkloads ?? "—")}</strong></div></div>`;
+  renderMlopsEvidence();
   renderGpuTelemetry();
 }
 
@@ -324,7 +393,7 @@ function topologyWorkload(workload, node) {
   return `
     <article class="gpu-allocation ${workload.active ? "active" : "released"}">
       <div class="allocation-status"><span class="status-dot"></span><span class="status-pill ${statusClass(workload.phase)}">${escapeHtml(stateName)}</span></div>
-      <div class="allocation-workload"><small>${escapeHtml(isTenant ? "ETRI SCIENCE JOB" : `${workload.namespace || "shared"} · SHARED`)}</small><strong>${escapeHtml(workload.workload)}</strong><code>${escapeHtml(workload.pod)}</code></div>
+      <div class="allocation-workload"><small>${escapeHtml(isTenant ? "SCIENCE JOB" : `${publicIdentifier(workload.namespace, "shared")} · SHARED`)}</small><strong>${escapeHtml(publicIdentifier(workload.workload))}</strong><code>${escapeHtml(publicIdentifier(workload.pod))}</code></div>
       <div class="allocation-device"><small>${escapeHtml(allocation.model || node.accelerator?.model || "NVIDIA GPU")}</small><strong>${escapeHtml(shortUuid(allocation.uuid))}</strong><span>${escapeHtml(allocation.memoryMiB || workload.request?.memoryMiB || 0)} MiB · Core ${escapeHtml(allocation.corePercent || workload.request?.corePercent || 0)}%</span></div>
     </article>`;
 }
@@ -341,7 +410,7 @@ function topologyNode(node) {
   return `
     <article class="topology-node ${nodeClass}">
       <header class="node-heading">
-        <div><span class="node-health ${node.health === "ready" ? "ready" : "not-ready"}"></span><div><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><h3>${escapeHtml(node.node)}</h3></div></div>
+        <div><span class="node-health ${node.health === "ready" ? "ready" : "not-ready"}"></span><div><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><h3>${escapeHtml(publicIdentifier(node.node))}</h3></div></div>
         <span class="status-pill ${node.health === "ready" ? "succeeded" : "failed"}">${escapeHtml(node.health)}</span>
       </header>
       <div class="node-facts">
@@ -372,7 +441,7 @@ function renderTopology() {
   byId("topology-generated-at").textContent = formatDate(state.topology.generatedAt);
   target.innerHTML = (state.topology.sites || []).map((site) => `
     <section class="site-topology">
-      <header class="site-heading"><div><span class="site-mark">S</span><div><small>SITE</small><h3>${escapeHtml(site.site)}</h3></div></div><span>${escapeHtml(site.readyNodeCount)}/${escapeHtml(site.nodeCount)} Ready</span></header>
+      <header class="site-heading"><div><span class="site-mark">S</span><div><small>SITE</small><h3>${escapeHtml(publicIdentifier(site.site))}</h3></div></div><span>${escapeHtml(site.readyNodeCount)}/${escapeHtml(site.nodeCount)} Ready</span></header>
       <div class="node-grid">${[...(site.nodes || [])].sort((left, right) => Number(Boolean(right.accelerator)) - Number(Boolean(left.accelerator))).map(topologyNode).join("")}</div>
     </section>`).join("") || '<div class="empty-state"><div class="empty-symbol">◇</div><h3>표시할 Node가 없습니다</h3></div>';
 }
@@ -473,7 +542,7 @@ async function openDetail(jobId) {
       ${placement ? `<div class="placement-trace">
         <div><small>REQUEST</small><strong>${escapeHtml(resources.gpuMemoryMiB || "—")} MiB · ${escapeHtml(resources.gpuCorePercent || "—")}%</strong></div><i>→</i>
         <div><small>QUEUE</small><strong>${escapeHtml(job.queue?.name || state.config?.localQueue || "—")}</strong></div><i>→</i>
-        <div><small>NODE</small><strong>${escapeHtml(placement.node || "—")}</strong></div><i>→</i>
+        <div><small>NODE</small><strong>${escapeHtml(publicIdentifier(placement.node))}</strong></div><i>→</i>
         <div class="placement-gpu"><small>${escapeHtml(placement.gpuModel || "NVIDIA GPU")}</small><strong>${escapeHtml(shortUuid(actualGpu.uuid))}</strong></div>
       </div><div class="placement-proof"><span class="status-pill ${placement.active ? "running" : "neutral"}">${placement.active ? "사용 중" : "반환됨"}</span><code>${escapeHtml(actualGpu.uuid || "GPU UUID 확인 대기")}</code><span>${escapeHtml(actualGpu.memoryMiB || resources.gpuMemoryMiB || "—")} MiB · Core ${escapeHtml(actualGpu.corePercent || resources.gpuCorePercent || "—")}%</span></div>` : '<p class="notice">아직 Scheduler가 GPU를 배정하지 않았거나 보존 기간이 지나 Pod 기록이 정리되었습니다.</p>'}
     </section>` : "";
@@ -579,7 +648,9 @@ function rewriteInstitutionLinks() {
     link.href = link.href
       .replace("research-hub.192.168.0.56.nip.io", "research-hub.10.254.192.217.nip.io")
       .replace("mini-science-ai-os.192.168.0.56.nip.io", "mini-science-ai-os.10.254.192.217.nip.io")
-      .replace("kubeflow-pipelines.192.168.0.56.nip.io", "kubeflow-pipelines.10.254.192.217.nip.io");
+      .replace("kubeflow-pipelines.192.168.0.56.nip.io", "kubeflow-pipelines.10.254.192.217.nip.io")
+      .replace("mlflow.192.168.0.56.nip.io", "mlflow.10.254.192.217.nip.io")
+      .replace("grafana.192.168.0.56.sslip.io", "grafana.10.254.192.217.nip.io");
   });
 }
 

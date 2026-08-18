@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
 from science_os import job_api
-from science_os.job_api import _placement_for_job
+from science_os.job_api import _mlflow_metric, _placement_for_job
 from science_os.resource_catalog import _component_snapshot, _fleet_summary, _gpu_workload, _parse_hami_allocations
 
 
@@ -150,13 +151,43 @@ def test_component_snapshot_marks_replica_health() -> None:
     assert by_name["Agent Runtime"]["status"] == "degraded"
     assert by_name["Artifact Store"]["status"] == "ready"
     assert by_name["Kubeflow API"]["status"] == "unknown"
+    assert by_name["MLflow"]["status"] == "unknown"
+    assert by_name["Grafana"]["status"] == "unknown"
+
+
+def test_mlflow_metric_reads_named_metric_without_guessing() -> None:
+    run = {
+        "data": {
+            "metrics": [
+                {"key": "samples", "value": 8},
+                {"key": "mae", "value": 0.09},
+            ]
+        }
+    }
+
+    assert _mlflow_metric(run, "mae") == 0.09
+    assert _mlflow_metric(run, "missing") is None
 
 
 def test_portal_requests_operations_dashboard_data() -> None:
     portal = Path(job_api.__file__).with_name("portal")
     html = (portal / "index.html").read_text(encoding="utf-8")
     javascript = (portal / "portal.js").read_text(encoding="utf-8")
+    stylesheet = (portal / "portal.css").read_text(encoding="utf-8")
 
     assert 'id="operations-proof-rail"' in html
+    assert 'id="mlops-evidence"' in html
     assert 'id="gpu-telemetry"' in html
+    assert "MLflow" in html
+    assert "Grafana" in html
     assert 'api("/v1/operations")' in javascript
+    assert "renderMlopsEvidence" in javascript
+    assert 'replace("mlflow.192.168.0.56.nip.io", "mlflow.10.254.192.217.nip.io")' in javascript
+    assert html.index('class="panel gpu-observatory"') < html.index('class="panel resource-panel"')
+    assert html.index('class="panel resource-panel"') < html.index('class="panel platform-panel"')
+    assert ".evidence-copy strong { font-size:14px; }" in stylesheet
+    assert ".component-row strong { font-size:13px; }" in stylesheet
+    assert re.search(r"\bETRI\b", html) is None
+    assert "ETRI SCIENCE JOB" not in javascript
+    assert "publicIdentifier" in javascript
+    assert "publicIdentifier(gpu?.node)" in javascript

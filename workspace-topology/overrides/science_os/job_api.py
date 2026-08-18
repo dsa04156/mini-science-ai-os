@@ -37,6 +37,10 @@ ALLOWED_REGISTRIES = tuple(item.strip() for item in os.getenv("ALLOWED_REGISTRIE
 KFP_ENDPOINT = os.getenv("KFP_ENDPOINT", "http://ml-pipeline.kubeflow.svc.cluster.local:8888")
 KFP_RUNNER_SERVICE_ACCOUNT = os.getenv("KFP_RUNNER_SERVICE_ACCOUNT", f"pipeline-runner-{TENANT}")
 CATALOG_URL = os.getenv("RESOURCE_CATALOG_URL", "http://resource-catalog.science-ai-system.svc.cluster.local:8000").rstrip("/")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.science-ai-mlops.svc.cluster.local:5000").rstrip("/")
+MLFLOW_EVIDENCE_EXPERIMENT = os.getenv("MLFLOW_EVIDENCE_EXPERIMENT", "nais-kfp-mlflow-integration")
+MLFLOW_EVIDENCE_MODEL = os.getenv("MLFLOW_EVIDENCE_MODEL", "nais-kfp-mean-baseline")
+KFP_EVIDENCE_RUN_NAME = os.getenv("KFP_EVIDENCE_RUN_NAME", "nais-kfp-mlflow-integration")
 PLATFORM_VERSION = os.getenv("PLATFORM_VERSION", "0.3.1")
 PLATFORM_PROFILE = os.getenv("PLATFORM_PROFILE", "internal-production")
 PORTAL_ACCESS_MODE = os.getenv("PORTAL_ACCESS_MODE", "disabled")
@@ -57,6 +61,7 @@ app = FastAPI(
 )
 app.mount("/metrics", make_asgi_app())
 audit = AuditLogger("science-job-api")
+_MLOPS_EVIDENCE_CACHE: dict[str, Any] = {"expires_at": 0.0, "payload": None}
 
 
 @app.middleware("http")
@@ -458,7 +463,7 @@ async def readyz() -> dict[str, str]:
     if not API_TOKEN:
         raise HTTPException(status_code=503, detail="tenant session signing key is unavailable")
     if TENANT != "etri" or TENANT_NAMESPACE != "tenant-etri":
-        raise HTTPException(status_code=503, detail="ETRI product scope is not configured")
+        raise HTTPException(status_code=503, detail="internal product scope is not configured")
     if PLATFORM_PROFILE == "internal-production" and PORTAL_ACCESS_MODE != "trusted-network":
         raise HTTPException(status_code=503, detail="trusted-network portal mode is not configured")
     return {
@@ -514,7 +519,7 @@ async def delete_portal_session(response: Response) -> dict[str, str]:
 async def portal_config() -> dict[str, Any]:
     return {
         "platformName": "NAIS Science Workspace",
-        "edition": "ETRI Internal",
+        "edition": "Internal",
         "version": PLATFORM_VERSION,
         "deploymentProfile": PLATFORM_PROFILE,
         "accessMode": PORTAL_ACCESS_MODE,
@@ -563,7 +568,133 @@ async def topology() -> dict[str, Any]:
 
 @app.get("/v1/operations", dependencies=[Depends(authorize)])
 async def operations() -> dict[str, Any]:
-    return await _catalog_payload("/v1/operations", "operations")
+    payload = await _catalog_payload("/v1/operations", "operations")
+    payload["mlops"] = await _mlops_evidence()
+    return payload
+
+
+def _latest_kfp_evidence_run() -> dict[str, Any]:
+    response = _kubeflow_client().list_runs(
+        page_size=1,
+        sort_by="created_at desc",
+        filter=json.dumps(
+            {
+                "predicates": [
+                    {
+                        "operation": "EQUALS",
+                        "key": "display_name",
+                        "stringValue": KFP_EVIDENCE_RUN_NAME,
+                    }
+                ]
+            }
+        ),
+    )
+    runs = response.runs or []
+    if not runs:
+        return {"status": "not-found", "runName": KFP_EVIDENCE_RUN_NAME}
+    run = runs[0]
+    duration = None
+    if run.created_at and run.finished_at:
+        duration = max(0, int((run.finished_at - run.created_at).total_seconds()))
+    return {
+        "status": "ready",
+        "runId": run.run_id,
+        "runName": run.display_name,
+        "state": str(run.state or "UNKNOWN"),
+        "createdAt": run.created_at.isoformat() if run.created_at else None,
+        "finishedAt": run.finished_at.isoformat() if run.finished_at else None,
+        "durationSeconds": duration,
+    }
+
+
+def _mlflow_metric(run: dict[str, Any], key: str) -> float | None:
+    for metric in run.get("data", {}).get("metrics", []):
+        if metric.get("key") == key:
+            try:
+                return float(metric.get("value"))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+async def _mlflow_evidence() -> dict[str, Any]:
+    async with httpx2.AsyncClient(timeout=5.0) as http:
+        experiment_response = await http.get(
+            f"{MLFLOW_TRACKING_URI}/api/2.0/mlflow/experiments/get-by-name",
+            params={"experiment_name": MLFLOW_EVIDENCE_EXPERIMENT},
+        )
+        experiment_response.raise_for_status()
+        experiment = experiment_response.json()["experiment"]
+
+        runs_response = await http.post(
+            f"{MLFLOW_TRACKING_URI}/api/2.0/mlflow/runs/search",
+            json={
+                "experiment_ids": [experiment["experiment_id"]],
+                "max_results": 1,
+                "order_by": ["attributes.start_time DESC"],
+            },
+        )
+        runs_response.raise_for_status()
+        runs = runs_response.json().get("runs", [])
+        if not runs:
+            return {
+                "status": "not-found",
+                "experimentId": experiment["experiment_id"],
+                "experimentName": experiment["name"],
+            }
+        run = runs[0]
+
+        model_response = await http.get(
+            f"{MLFLOW_TRACKING_URI}/api/2.0/mlflow/registered-models/alias",
+            params={"name": MLFLOW_EVIDENCE_MODEL, "alias": "candidate"},
+        )
+        model_response.raise_for_status()
+        model = model_response.json()["model_version"]
+
+    return {
+        "status": "ready",
+        "experimentId": experiment["experiment_id"],
+        "experimentName": experiment["name"],
+        "run": {
+            "runId": run.get("info", {}).get("run_id"),
+            "runName": run.get("info", {}).get("run_name"),
+            "status": run.get("info", {}).get("status"),
+            "startedAt": run.get("info", {}).get("start_time"),
+            "mae": _mlflow_metric(run, "mae"),
+            "samples": _mlflow_metric(run, "samples"),
+        },
+        "model": {
+            "name": model.get("name"),
+            "version": model.get("version"),
+            "status": model.get("status"),
+            "alias": "candidate" if "candidate" in model.get("aliases", []) else None,
+            "runId": model.get("run_id"),
+        },
+    }
+
+
+async def _mlops_evidence() -> dict[str, Any]:
+    now = time.monotonic()
+    cached = _MLOPS_EVIDENCE_CACHE.get("payload")
+    if cached is not None and now < float(_MLOPS_EVIDENCE_CACHE.get("expires_at", 0)):
+        return cached
+
+    try:
+        kfp = await run_in_threadpool(_latest_kfp_evidence_run)
+    except Exception as exc:
+        kfp = {"status": "unavailable", "reason": type(exc).__name__}
+    try:
+        mlflow = await _mlflow_evidence()
+    except Exception as exc:
+        mlflow = {"status": "unavailable", "reason": type(exc).__name__}
+
+    payload = {
+        "generatedAt": int(time.time() * 1000),
+        "kfp": kfp,
+        "mlflow": mlflow,
+    }
+    _MLOPS_EVIDENCE_CACHE.update({"expires_at": now + 15.0, "payload": payload})
+    return payload
 
 
 def _placement_for_job(topology_payload: dict[str, Any], job_id: str) -> dict[str, Any] | None:

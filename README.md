@@ -4,7 +4,7 @@
 
 ![실제 장비와 실행 증거를 결합한 NAIS Science Workspace 운영 대시보드](portfolio/screenshots/operations-dashboard-desktop.png)
 
-대시보드는 데모 숫자를 표시하지 않습니다. 실제 5개 노드의 Kubernetes 상태, Kueue 입장 판정, HAMi 논리 할당, Prometheus 구성요소 상태와 DCGM 물리 GPU 신호를 `/v1/operations`에서 결합합니다. 화면의 시계열 값은 장비 상태에 따라 계속 바뀝니다.
+대시보드는 데모 숫자를 표시하지 않습니다. 실제 5개 노드의 Kubernetes 상태, Kueue 입장 판정, HAMi 논리 할당, Prometheus 구성요소 상태와 DCGM 물리 GPU 신호를 `/v1/operations`에서 결합합니다. 최신 Kubeflow 실행, MLflow Run·candidate 모델과 Grafana 상태도 같은 화면에서 직접 연결합니다. 화면의 값은 장비 상태에 따라 계속 바뀝니다.
 
 ## 현재 검증 상태
 
@@ -60,7 +60,7 @@ make destroy-demo
 - `make resilience-plan`: Pod 변경 없이 PDB 기반 가용성 Drill 절차 출력
 - `make destroy-demo`: 프로젝트 Demo Job만 삭제하며 PVC·운영 구성요소는 보존
 
-Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 기본 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이고, 운영 대시보드 Overlay는 `0.3.4-showcase` (`sha256:1a54a9991b5a78379ac6ff257b013710c604ea0843741f036b0b2ec520e3c31c`)로 배포합니다.
+Secret 값은 `scripts/ensure-secrets.sh`가 Kubernetes Secret에 생성하며 Git에 기록하지 않습니다. 기본 런타임 이미지는 `192.168.0.56:5000/mini-science-ai-os:0.3.1`이고, 운영 대시보드 Overlay는 `0.3.8-neutral-ui` (`sha256:04866581c353372a173ffce26bb2aae93cf1b4b4d66214eaded605ef21e465a5`)로 배포합니다.
 
 ## 접근
 

@@ -8,7 +8,7 @@
 
 ![NAIS Science Workspace 실제 장비 운영 대시보드](screenshots/operations-dashboard-desktop.png)
 
-이 화면은 2026-08-14 실제 랩 장비에서 수집한 상태다. 5개 노드의 Ready·CPU·Memory·Architecture, 2개 물리 GPU의 DCGM 사용량·온도·전력, HAMi 논리 할당, Kueue 입장 상태와 6개 핵심 플랫폼 구성요소를 한 화면에서 교차 확인한다. 실시간 값은 장비 상태에 따라 달라진다.
+이 화면은 2026-08-18 실제 랩 장비에서 수집한 상태다. 5개 노드의 Ready·CPU·Memory·Architecture, 2개 물리 GPU의 DCGM 사용량·온도·전력, HAMi 논리 할당, Kueue 입장 상태와 8개 핵심 플랫폼 구성요소를 한 화면에서 교차 확인한다. 상단의 Live Evidence Spine은 동일한 실행의 Kubeflow 성공, MLflow Run·candidate 모델, Grafana 관측 상태를 실제 링크로 연결한다. 실시간 값은 장비 상태에 따라 달라진다.
 
 모바일 검수 화면은 [operations-dashboard-mobile.png](screenshots/operations-dashboard-mobile.png), API·배포 소스는 [workspace-topology](../workspace-topology)에 있다.
 

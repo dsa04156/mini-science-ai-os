@@ -22,13 +22,13 @@
       <div class="connection-progress" aria-hidden="true"><i></i><i></i><i></i></div>
       <button id="retry-connection" class="primary-button wide" type="button" hidden><span>다시 연결</span><span aria-hidden="true">↻</span></button>
       <div class="trust-row" aria-label="보안 특성">
-        <span>자동 연결</span><span>ETRI 내부망 전용</span><span>Kubeflow 연동</span>
+        <span>자동 연결</span><span>내부망 전용</span><span>Kubeflow 연동</span>
       </div>
     </section>
     <aside class="login-visual" aria-hidden="true">
       <div class="orb orb-a"></div><div class="orb orb-b"></div>
       <div class="signal-card signal-main"><small>실행 경로</small><strong>API → Kueue → Kubeflow</strong><div class="signal-line"><i></i><i></i><i></i></div></div>
-      <div class="signal-card signal-small"><span class="live-dot"></span><strong>ETRI workspace</strong></div>
+      <div class="signal-card signal-small"><span class="live-dot"></span><strong>Science workspace</strong></div>
     </aside>
   </main>
 
@@ -36,7 +36,7 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div><strong>NAIS Science</strong><small id="platform-version">ETRI Internal</small></div>
+        <div><strong>NAIS Science</strong><small id="platform-version">Internal Workspace</small></div>
       </div>
       <nav class="main-nav" aria-label="주 메뉴">
         <button class="nav-item active" type="button" data-view="overview"><span class="nav-icon">◫</span><span>개요</span></button>
@@ -49,11 +49,13 @@
         <a class="nav-item service-link" href="http://research-hub.192.168.0.56.nip.io/"><span class="nav-icon">⌂</span><span>서비스 홈</span><span class="external-arrow" aria-hidden="true">↗</span></a>
         <a class="nav-item service-link" href="http://mini-science-ai-os.192.168.0.56.nip.io/"><span class="nav-icon">⌑</span><span>제품 문서</span><span class="external-arrow" aria-hidden="true">↗</span></a>
         <a class="nav-item service-link" href="http://kubeflow-pipelines.192.168.0.56.nip.io/"><span class="nav-icon">⌁</span><span>Kubeflow</span><span class="external-arrow" aria-hidden="true">↗</span></a>
+        <a class="nav-item service-link" href="http://mlflow.192.168.0.56.nip.io/"><span class="nav-icon">◇</span><span>MLflow</span><span class="external-arrow" aria-hidden="true">↗</span></a>
+        <a class="nav-item service-link" href="http://grafana.192.168.0.56.sslip.io/d/nais-mlflow-functional-demo"><span class="nav-icon">⌁</span><span>Grafana</span><span class="external-arrow" aria-hidden="true">↗</span></a>
       </nav>
       <div class="sidebar-spacer"></div>
-      <section class="tenant-card" aria-label="현재 테넌트">
+      <section class="tenant-card" aria-label="현재 워크스페이스">
         <span class="status-dot"></span>
-        <div><small>현재 테넌트</small><strong id="tenant-sidebar">—</strong></div>
+        <div><small>워크스페이스</small><strong id="tenant-sidebar">INTERNAL</strong></div>
       </section>
       <button id="reconnect-button" class="quiet-button" type="button">세션 새로고침</button>
     </aside>
@@ -110,6 +112,48 @@
             <article><span class="proof-index">04</span><div><small>EXECUTION</small><strong>GPU Fabric</strong><span id="proof-gpu">확인 중</span></div></article>
           </section>
 
+          <section id="mlops-evidence" class="mlops-evidence" aria-labelledby="mlops-evidence-title">
+            <header class="evidence-heading">
+              <div>
+                <p class="eyebrow">MODEL LIFECYCLE · LIVE PROOF</p>
+                <h2 id="mlops-evidence-title">Pipeline에서 모델 후보까지.</h2>
+                <p>동일한 실행을 Kubeflow, MLflow Registry와 Grafana 관측값으로 교차 확인합니다.</p>
+              </div>
+              <span id="evidence-updated" class="evidence-updated"><span class="live-dot"></span>연결 중</span>
+            </header>
+            <div class="evidence-spine" aria-label="Kubeflow에서 Grafana까지의 최신 검증 흐름">
+              <a id="evidence-kfp-link" class="evidence-stage" href="http://kubeflow-pipelines.192.168.0.56.nip.io/">
+                <span class="evidence-index">01</span>
+                <span class="evidence-copy"><small>ORCHESTRATE</small><strong>Kubeflow Pipeline</strong><span id="evidence-kfp-state">확인 중</span></span>
+                <code id="evidence-kfp-id">—</code>
+              </a>
+              <i class="evidence-connector" aria-hidden="true"></i>
+              <a id="evidence-run-link" class="evidence-stage" href="http://mlflow.192.168.0.56.nip.io/">
+                <span class="evidence-index">02</span>
+                <span class="evidence-copy"><small>TRACK</small><strong>MLflow Run</strong><span id="evidence-run-state">확인 중</span></span>
+                <code id="evidence-run-id">—</code>
+              </a>
+              <i class="evidence-connector" aria-hidden="true"></i>
+              <a id="evidence-model-link" class="evidence-stage" href="http://mlflow.192.168.0.56.nip.io/#/models">
+                <span class="evidence-index">03</span>
+                <span class="evidence-copy"><small>REGISTER</small><strong>Candidate Model</strong><span id="evidence-model-state">확인 중</span></span>
+                <code id="evidence-model-id">—</code>
+              </a>
+              <i class="evidence-connector" aria-hidden="true"></i>
+              <a id="evidence-grafana-link" class="evidence-stage" href="http://grafana.192.168.0.56.sslip.io/d/nais-mlflow-functional-demo">
+                <span class="evidence-index">04</span>
+                <span class="evidence-copy"><small>OBSERVE</small><strong>Grafana</strong><span id="evidence-grafana-state">확인 중</span></span>
+                <code>success · duration</code>
+              </a>
+            </div>
+            <footer class="evidence-facts">
+              <div><small>LATEST METRIC</small><strong id="evidence-mae">MAE —</strong></div>
+              <div><small>MODEL ALIAS</small><strong id="evidence-alias">—</strong></div>
+              <div><small>PIPELINE TIME</small><strong id="evidence-duration">—</strong></div>
+              <a href="http://mlflow.192.168.0.56.nip.io/">실행 증거 열기 <span aria-hidden="true">↗</span></a>
+            </footer>
+          </section>
+
           <section class="ops-kpis" aria-label="실시간 작업과 압력">
             <article><small>WORKLOADS</small><strong id="stat-total">—</strong><span id="stat-total-note">불러오는 중</span></article>
             <article><small>RUNNING</small><strong id="stat-running">—</strong><span>현재 실행</span></article>
@@ -122,6 +166,11 @@
             <section class="panel gpu-observatory">
               <div class="panel-heading"><div><p class="eyebrow">DCGM · PHYSICAL SIGNAL</p><h2>GPU 관측소</h2><p>논리 할당과 물리 사용량을 분리해 표시합니다.</p></div><span id="gpu-health" class="status-pill neutral">확인 중</span></div>
               <div id="gpu-telemetry" class="gpu-telemetry" aria-live="polite"><span class="skeleton"></span></div>
+            </section>
+
+            <section class="panel resource-panel">
+              <div class="panel-heading"><div><p class="eyebrow">HAMi · LOGICAL CAPACITY</p><h2>GPU 공유 할당</h2><p>물리 GPU에 예약된 논리 메모리와 코어를 함께 봅니다.</p></div><span id="catalog-health" class="status-pill neutral">확인 중</span></div>
+              <div id="resource-content" class="resource-content"></div>
             </section>
 
             <section class="panel platform-panel">
@@ -148,10 +197,6 @@
               <div id="recent-jobs" class="job-list" aria-live="polite"></div>
             </section>
 
-            <section class="panel resource-panel">
-              <div class="panel-heading"><div><p class="eyebrow">LOGICAL CAPACITY</p><h2>HAMi 할당</h2></div><span id="catalog-health" class="status-pill neutral">확인 중</span></div>
-              <div id="resource-content" class="resource-content"></div>
-            </section>
           </div>
         </section>
 
@@ -239,7 +284,7 @@ cpu</textarea><small>예: python / -m / science_os.demo. Shell 확장은 수행�
             </div>
             <aside class="submit-summary panel">
               <p class="eyebrow">REVIEW</p><h3>제출 요약</h3>
-              <dl><div><dt>테넌트</dt><dd id="summary-tenant">—</dd></div><div><dt>Namespace</dt><dd id="summary-namespace">—</dd></div><div><dt>LocalQueue</dt><dd id="summary-queue">—</dd></div><div><dt>실행 제한</dt><dd id="summary-runtime">—</dd></div></dl>
+              <dl><div><dt>워크스페이스</dt><dd id="summary-tenant">—</dd></div><div><dt>Namespace</dt><dd id="summary-namespace">—</dd></div><div><dt>LocalQueue</dt><dd id="summary-queue">—</dd></div><div><dt>실행 제한</dt><dd id="summary-runtime">—</dd></div></dl>
               <div class="flow-mini"><span>검증</span><i></i><span>Queue</span><i></i><span>Kubeflow</span></div>
               <p id="submit-error" class="form-error" role="alert" hidden></p>
               <button id="submit-button" class="primary-button wide" type="submit">검증 후 제출 <span aria-hidden="true">→</span></button>

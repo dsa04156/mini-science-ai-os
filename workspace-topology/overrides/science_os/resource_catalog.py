@@ -222,6 +222,8 @@ def _component_snapshot(available: list[dict[str, Any]], desired: list[dict[str,
         ("Resource Catalog", "science-ai-system", "resource-catalog", "deployment"),
         ("Kubeflow API", "kubeflow", "ml-pipeline", "deployment"),
         ("Metadata DB", "kubeflow", "mysql", "deployment"),
+        ("MLflow", "science-ai-mlops", "mlflow", "deployment"),
+        ("Grafana", "kube-system", "prometheus-grafana", "deployment"),
         ("Artifact Store", "science-ai-mlops", "minio", "statefulset"),
     ]
     components = []
@@ -508,7 +510,7 @@ async def observe_operations() -> dict[str, Any]:
     )
     return {
         "generatedAt": datetime.now(UTC).isoformat(),
-        "dataSources": ["Kubernetes", "Kueue", "HAMi", "Prometheus", "DCGM", "Kubeflow"],
+        "dataSources": ["Kubernetes", "Kueue", "HAMi", "Prometheus", "DCGM", "Kubeflow", "MLflow", "Grafana"],
         "fleet": _fleet_summary(nodes),
         "gpu": {
             "devices": gpu_devices,

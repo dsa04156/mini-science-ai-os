@@ -185,13 +185,15 @@ def test_portal_requests_operations_dashboard_data() -> None:
     assert 'replace("mlflow.192.168.0.56.nip.io", "mlflow.10.254.192.217.nip.io")' in javascript
     assert html.index('class="panel gpu-observatory"') < html.index('class="panel resource-panel"')
     assert html.index('class="panel resource-panel"') < html.index('class="panel platform-panel"')
-    assert ".evidence-copy strong { font-size:14px; }" in stylesheet
+    assert ".request-evidence-flow strong { color:#eef8f5; font-size:14px;" in stylesheet
     assert ".component-row strong { font-size:13px; }" in stylesheet
     assert re.search(r"\bETRI\b", html) is None
     assert "ETRI SCIENCE JOB" not in javascript
     assert "REQUEST-TO-EVIDENCE PIPELINE" in html
+    assert "요청에서 실험 증거까지." in html
     assert "Metric · Artifact" in html
-    assert 'id="fleet-strip"' not in html
-    assert 'byId("fleet-strip")' not in javascript
+    assert html.index('id="mlops-evidence"') < html.index('id="request-evidence-pipeline"')
+    assert 'id="fleet-strip"' in html
+    assert 'byId("fleet-strip")' in javascript
     assert "publicIdentifier" in javascript
     assert "publicIdentifier(gpu?.node)" in javascript

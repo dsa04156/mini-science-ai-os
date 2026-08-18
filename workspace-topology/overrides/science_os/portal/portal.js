@@ -241,16 +241,10 @@ function serviceOrigin(lanHost, institutionHost) {
   return `http://${host}`;
 }
 
-function compactEvidenceId(value) {
-  const text = String(value || "");
-  return text ? `${text.slice(0, 8)}…${text.slice(-4)}` : "—";
-}
-
-function evidenceStage(id, ready, label) {
-  const stage = byId(id);
-  stage.dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
-  const stateLabel = stage.querySelector(".evidence-copy span");
+function evidencePipelineStatus(id, ready, label) {
+  const stateLabel = byId(id);
   stateLabel.textContent = label;
+  stateLabel.closest("li").dataset.status = ready === true ? "ready" : ready === false ? "degraded" : "unknown";
 }
 
 function renderMlopsEvidence() {
@@ -266,17 +260,14 @@ function renderMlopsEvidence() {
   const modelReady = mlflow.status === "ready" ? String(model.status).toUpperCase() === "READY" && model.alias === "candidate" : null;
   const grafanaReady = grafana ? grafana.status === "ready" : null;
 
-  evidenceStage("evidence-kfp-link", kfpReady, kfp.status === "ready" ? String(kfp.state || "UNKNOWN").toUpperCase() : "UNAVAILABLE");
-  evidenceStage("evidence-run-link", runReady, mlflow.status === "ready" ? String(run.status || "UNKNOWN").toUpperCase() : "UNAVAILABLE");
-  evidenceStage("evidence-model-link", modelReady, modelReady ? `${model.alias} · v${model.version}` : mlflow.status === "ready" ? "CHECK" : "UNAVAILABLE");
-  evidenceStage("evidence-grafana-link", grafanaReady, grafana ? `${grafana.ready ?? "—"}/${grafana.desired ?? "—"} READY` : "UNAVAILABLE");
+  evidencePipelineStatus("evidence-kfp-state", kfpReady, kfp.status === "ready" ? String(kfp.state || "UNKNOWN").toUpperCase() : "UNAVAILABLE");
+  const proofReady = runReady === true && modelReady === true && grafanaReady === true;
+  const proofKnown = runReady !== null || modelReady !== null || grafanaReady !== null;
+  const proofLabel = mlflow.status === "ready"
+    ? `${String(run.status || "UNKNOWN").toUpperCase()} · ${model.alias ? `@${model.alias}` : "NO MODEL"} · GRAFANA ${grafanaReady ? "READY" : "CHECK"}`
+    : "UNAVAILABLE";
+  evidencePipelineStatus("evidence-run-state", proofKnown ? proofReady : null, proofLabel);
 
-  byId("evidence-kfp-id").textContent = compactEvidenceId(kfp.runId);
-  byId("evidence-kfp-id").title = kfp.runId || "";
-  byId("evidence-run-id").textContent = compactEvidenceId(run.runId);
-  byId("evidence-run-id").title = run.runId || "";
-  byId("evidence-model-id").textContent = model.name ? `${model.name} · v${model.version || "—"}` : "—";
-  byId("evidence-model-id").title = model.name || "";
   byId("evidence-mae").textContent = finiteNumber(run.mae) === null ? "MAE —" : `MAE ${Number(run.mae).toFixed(2)}`;
   byId("evidence-alias").textContent = model.alias ? `@${model.alias} · v${model.version}` : "—";
   byId("evidence-duration").textContent = finiteNumber(kfp.durationSeconds) === null ? "—" : `${Number(kfp.durationSeconds)} sec`;
@@ -288,11 +279,8 @@ function renderMlopsEvidence() {
 
   const kfpOrigin = serviceOrigin("kubeflow-pipelines.192.168.0.56.nip.io", "kubeflow-pipelines.10.254.192.217.nip.io");
   const mlflowOrigin = serviceOrigin("mlflow.192.168.0.56.nip.io", "mlflow.10.254.192.217.nip.io");
-  const grafanaOrigin = serviceOrigin("grafana.192.168.0.56.sslip.io", "grafana.10.254.192.217.nip.io");
   byId("evidence-kfp-link").href = kfp.runId ? `${kfpOrigin}/#/runs/details/${encodeURIComponent(kfp.runId)}` : kfpOrigin;
   byId("evidence-run-link").href = mlflow.experimentId && run.runId ? `${mlflowOrigin}/#/experiments/${encodeURIComponent(mlflow.experimentId)}/runs/${encodeURIComponent(run.runId)}` : mlflowOrigin;
-  byId("evidence-model-link").href = model.name && model.version ? `${mlflowOrigin}/#/models/${encodeURIComponent(model.name)}/versions/${encodeURIComponent(model.version)}` : `${mlflowOrigin}/#/models`;
-  byId("evidence-grafana-link").href = `${grafanaOrigin}/d/nais-mlflow-functional-demo`;
   const proofLink = document.querySelector(".evidence-facts > a");
   proofLink.href = byId("evidence-run-link").href;
 }
@@ -340,9 +328,9 @@ function renderOperations() {
   if (!operations) {
     byId("operations-age").textContent = "신호 없음";
     byId("fleet-health").textContent = "UNAVAILABLE";
+    byId("fleet-strip").innerHTML = '<p class="notice">운영 데이터를 불러오지 못했습니다.</p>';
     proofStatus("proof-api", null, "UNAVAILABLE");
     proofStatus("proof-queue", null, "UNAVAILABLE");
-    proofStatus("proof-kubeflow", null, "UNAVAILABLE");
     proofStatus("proof-gpu", null, "UNAVAILABLE");
     byId("platform-components").innerHTML = '<p class="notice">구성요소 상태를 확인할 수 없습니다.</p>';
     byId("queue-instrument").innerHTML = '<p class="notice">Queue 상태를 확인할 수 없습니다.</p>';
@@ -351,6 +339,7 @@ function renderOperations() {
     return;
   }
   const fleet = operations.fleet || {};
+  const nodes = (operations.topology?.sites || []).flatMap((site) => site.nodes || []);
   byId("operations-age").textContent = `${formatDate(operations.generatedAt)} 수집`;
   byId("operations-ready").textContent = `${fleet.readyNodeCount ?? "—"}/${fleet.nodeCount ?? "—"}`;
   byId("fleet-health").textContent = fleet.readyNodeCount === fleet.nodeCount ? "ALL SYSTEMS NOMINAL" : "ATTENTION REQUIRED";
@@ -359,12 +348,11 @@ function renderOperations() {
   byId("fleet-gpu").textContent = `${fleet.physicalGpuCount ?? "—"} devices`;
   byId("fleet-arch").textContent = Object.entries(fleet.architectures || {}).map(([name, count]) => `${name}×${count}`).join(" · ") || "—";
   byId("fleet-pressure").textContent = `${fixedMetric(fleet.averageCpuPercent, 1, "%")} · ${fixedMetric(fleet.averageMemoryPercent, 1, "%")}`;
+  byId("fleet-strip").innerHTML = nodes.map((node) => `<article class="fleet-node ${node.accelerator ? "gpu" : ""}" title="${escapeHtml(publicIdentifier(node.node))}"><small>${escapeHtml(node.executionClass)} · ${escapeHtml(node.architecture)}</small><strong>${escapeHtml(compactNodeName(node.node))}</strong></article>`).join("");
 
   const apiComponent = componentByName("Science API");
-  const kubeflowComponent = componentByName("Kubeflow API");
   proofStatus("proof-api", apiComponent ? apiComponent.status === "ready" : null, `${apiComponent?.ready}/${apiComponent?.desired} READY`);
   proofStatus("proof-queue", operations.queue?.status === "ready" ? true : operations.queue?.status === "degraded" ? false : null, `${operations.queue?.pendingWorkloads || 0} PENDING`);
-  proofStatus("proof-kubeflow", kubeflowComponent ? kubeflowComponent.status === "ready" : null, `${kubeflowComponent?.ready}/${kubeflowComponent?.desired} READY`);
   proofStatus("proof-gpu", operations.gpu?.deviceCount ? operations.gpu.healthyDeviceCount === operations.gpu.deviceCount : null, `${operations.gpu?.healthyDeviceCount}/${operations.gpu?.deviceCount} HEALTHY`);
 
   const platform = operations.platform || {};

@@ -90,16 +90,9 @@
                 <button class="hero-quiet" type="button" data-view="topology">물리 배치 보기</button>
               </div>
             </div>
-            <div id="request-evidence-pipeline" class="request-evidence-instrument">
-              <div class="instrument-head"><span>REQUEST-TO-EVIDENCE PIPELINE</span><span id="fleet-health">동기화 중</span></div>
-              <ol class="request-evidence-flow" aria-label="Science Job 요청부터 실행 증거까지의 흐름">
-                <li><span>01 · REQUEST</span><strong>요청<br>Workspace</strong><small>READY TO SUBMIT</small></li>
-                <li><span>02 · VALIDATE</span><strong>검증<br>Science API</strong><small id="proof-api">확인 중</small></li>
-                <li><span>03 · LINEAGE</span><strong>기록<br>Kubeflow</strong><small id="proof-kubeflow">확인 중</small></li>
-                <li><span>04 · ADMIT</span><strong>입장<br>Kueue</strong><small id="proof-queue">확인 중</small></li>
-                <li><span>05 · EXECUTE</span><strong>실행<br>Scheduler</strong><small id="proof-gpu">확인 중</small></li>
-                <li><span>06 · EVIDENCE</span><strong>증거<br>Metric · Artifact</strong><small>MLFLOW · GRAFANA</small></li>
-              </ol>
+            <div class="fleet-instrument">
+              <div class="instrument-head"><span>FLEET / ACTUAL HARDWARE</span><span id="fleet-health">동기화 중</span></div>
+              <div id="fleet-strip" class="fleet-strip" aria-label="실제 노드 상태" aria-live="polite"><span class="skeleton"></span></div>
               <dl class="fleet-totals">
                 <div><dt>CPU</dt><dd id="fleet-cpu">—</dd></div>
                 <div><dt>MEMORY</dt><dd id="fleet-memory">—</dd></div>
@@ -112,36 +105,22 @@
           <section id="mlops-evidence" class="mlops-evidence" aria-labelledby="mlops-evidence-title">
             <header class="evidence-heading">
               <div>
-                <p class="eyebrow">MODEL LIFECYCLE · LIVE PROOF</p>
-                <h2 id="mlops-evidence-title">Pipeline에서 모델 후보까지.</h2>
-                <p>동일한 실행을 Kubeflow, MLflow Registry와 Grafana 관측값으로 교차 확인합니다.</p>
+                <p class="eyebrow">EXPERIMENT FLOW · LIVE EVIDENCE</p>
+                <h2 id="mlops-evidence-title">요청에서 실험 증거까지.</h2>
+                <p>요청이 검증·기록·입장·실행을 거쳐 Metric과 Artifact로 남는 과정을 실제 상태로 보여줍니다.</p>
               </div>
               <span id="evidence-updated" class="evidence-updated"><span class="live-dot"></span>연결 중</span>
             </header>
-            <div class="evidence-spine" aria-label="Kubeflow에서 Grafana까지의 최신 검증 흐름">
-              <a id="evidence-kfp-link" class="evidence-stage" href="http://kubeflow-pipelines.192.168.0.56.nip.io/">
-                <span class="evidence-index">01</span>
-                <span class="evidence-copy"><small>ORCHESTRATE</small><strong>Kubeflow Pipeline</strong><span id="evidence-kfp-state">확인 중</span></span>
-                <code id="evidence-kfp-id">—</code>
-              </a>
-              <i class="evidence-connector" aria-hidden="true"></i>
-              <a id="evidence-run-link" class="evidence-stage" href="http://mlflow.192.168.0.56.nip.io/">
-                <span class="evidence-index">02</span>
-                <span class="evidence-copy"><small>TRACK</small><strong>MLflow Run</strong><span id="evidence-run-state">확인 중</span></span>
-                <code id="evidence-run-id">—</code>
-              </a>
-              <i class="evidence-connector" aria-hidden="true"></i>
-              <a id="evidence-model-link" class="evidence-stage" href="http://mlflow.192.168.0.56.nip.io/#/models">
-                <span class="evidence-index">03</span>
-                <span class="evidence-copy"><small>REGISTER</small><strong>Candidate Model</strong><span id="evidence-model-state">확인 중</span></span>
-                <code id="evidence-model-id">—</code>
-              </a>
-              <i class="evidence-connector" aria-hidden="true"></i>
-              <a id="evidence-grafana-link" class="evidence-stage" href="http://grafana.192.168.0.56.sslip.io/d/nais-mlflow-functional-demo">
-                <span class="evidence-index">04</span>
-                <span class="evidence-copy"><small>OBSERVE</small><strong>Grafana</strong><span id="evidence-grafana-state">확인 중</span></span>
-                <code>success · duration</code>
-              </a>
+            <div id="request-evidence-pipeline" class="evidence-pipeline-shell">
+              <div class="instrument-head"><span>REQUEST-TO-EVIDENCE PIPELINE</span><span>LIVE SYSTEM TRACE</span></div>
+              <ol class="request-evidence-flow" aria-label="Science Job 요청부터 실행 증거까지의 흐름">
+                <li data-status="ready"><span>01 · REQUEST</span><strong>요청<br>Workspace</strong><small>READY TO SUBMIT</small></li>
+                <li><span>02 · VALIDATE</span><strong>검증<br>Science API</strong><small id="proof-api">확인 중</small></li>
+                <li><a id="evidence-kfp-link" href="http://kubeflow-pipelines.192.168.0.56.nip.io/"><span>03 · LINEAGE</span><strong>기록<br>Kubeflow</strong><small id="evidence-kfp-state">확인 중</small></a></li>
+                <li><span>04 · ADMIT</span><strong>입장<br>Kueue</strong><small id="proof-queue">확인 중</small></li>
+                <li><span>05 · EXECUTE</span><strong>실행<br>Scheduler</strong><small id="proof-gpu">확인 중</small></li>
+                <li><a id="evidence-run-link" href="http://mlflow.192.168.0.56.nip.io/"><span>06 · EVIDENCE</span><strong>증거<br>Metric · Artifact</strong><small id="evidence-run-state">확인 중</small></a></li>
+              </ol>
             </div>
             <footer class="evidence-facts">
               <div><small>LATEST METRIC</small><strong id="evidence-mae">MAE —</strong></div>

@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - mlflow.yaml
   - networkpolicy.yaml
+  - kfp-mlflow-networkpolicy.yaml
   - ingress.yaml
   - demo-job.yaml
 configMapGenerator:

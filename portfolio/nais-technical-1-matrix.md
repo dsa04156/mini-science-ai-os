@@ -18,8 +18,8 @@ Prometheus/DCGM 관측, MCP Agent 경계와 감사 로그를 하나의 Science J
 | Linux/GPU 클러스터 운영 | HAMi 리소스와 Kubernetes GPU Job, DCGM 수집 | `docs/evidence/verification-matrix.md`, `docs/evidence/demo-*` | VERIFIED | 2개 GPU Node의 실험실 규모이며 대규모 운영은 아님 |
 | 자원 스케줄링 및 HPC | Kueue Queue/Quota와 HAMi GPU 배치 | `scripts/demo.sh`, `docs/evidence/verification-matrix.md` | VERIFIED | Kubernetes 경로만 검증했으며 SLURM은 현재 범위에서 제외 |
 | Docker/Kubernetes 및 CI/CD | Kustomize, 고정 이미지 Digest, 배포·검증 Make Target | `scripts/validate.sh`, `.github/workflows/portfolio.yml` | IMPLEMENTED | Argo CD는 게시 Git URL 부재로 Sync 미검증 |
-| MLOps 운영 | Kubeflow Pipelines 2.17와 단일 MLflow 3.13 기능 실증 | `docs/evidence/verification-matrix.md`, `portfolio/mlflow-grafana-demo/evidence.md` | VERIFIED (기능 PoC) | MLflow는 SQLite/local-path 단일 인스턴스이며 W&B는 미검증 |
-| Prometheus/Grafana 모니터링 | Prometheus, DCGM, Grafana 자동 프로비저닝 Dashboard | `portfolio/mlflow-grafana-demo/evidence.md`, `portfolio/mlflow-grafana-demo/evidence/grafana-mlflow-gpu-dashboard.png` | VERIFIED | Alert 외부 전달과 장기 보존은 미검증 |
+| MLOps 운영 | Kubeflow Pipelines 2.17 CPU component가 MLflow 3.13 Run/Artifact/Model candidate 생성 | `docs/evidence/verification-matrix.md`, `portfolio/mlflow-grafana-demo/evidence.md` | VERIFIED (기능 PoC) | MLflow는 SQLite/local-path 단일 인스턴스이며 W&B는 미검증 |
+| Prometheus/Grafana 모니터링 | Prometheus, DCGM, KFP 실행 상태와 Grafana 자동 프로비저닝 Dashboard | `portfolio/mlflow-grafana-demo/evidence.md`, `portfolio/mlflow-grafana-demo/evidence/grafana-kfp-mlflow-dashboard.png` | VERIFIED | Alert 외부 전달과 장기 보존은 미검증 |
 | LLM Agent/MCP 실행환경 | MCP Tool 6개, Science API 경계, Kubernetes Credential 제거 | `services/science_os/mcp_server.py`, `scripts/test.sh` | VERIFIED | 컨테이너 Sandbox Runtime 및 승인 Gate는 미구현 |
 | 도구 호출·실행 격리·로그 | Namespace/SA 고정, 입력 Allowlist, non-root Job, 구조화 Audit | `docs/permissions.md`, `docs/threat-model.md`, `tests/test_mcp.py` | VERIFIED | 사용자별 Identity와 중앙 Audit 보존은 없음 |
 | 백업·복구 | Git 재생성 절차와 격리 Restore Drill Script | `docs/disaster-recovery.md`, `portfolio/scripts/recovery-drill.sh` | IMPLEMENTED | 원격 Backup, PITR, 실제 Restore 성공 증거는 없음 |

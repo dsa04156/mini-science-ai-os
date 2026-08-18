@@ -1,9 +1,9 @@
 {
-  "title": "NAIS Functional Demo — MLflow & GPU Operations",
+  "title": "NAIS Functional Demo — Kubeflow, MLflow & GPU Operations",
   "uid": "nais-mlflow-functional-demo",
   "schemaVersion": 39,
-  "version": 1,
-  "tags": ["nais", "mlflow", "functional-demo", "gpu"],
+  "version": 2,
+  "tags": ["nais", "kubeflow", "mlflow", "functional-demo", "gpu"],
   "timezone": "browser",
   "refresh": "10s",
   "time": {"from": "now-1h", "to": "now"},
@@ -76,30 +76,52 @@
     {
       "id": 7,
       "type": "stat",
-      "title": "Kueue pending workloads",
-      "description": "대기 workload가 없거나 metric이 비어 있으면 0으로 표시합니다.",
-      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 14},
+      "title": "KFP → MLflow run succeeded",
+      "description": "MLflow Run, artifact, candidate model을 생성한 KFP component pod가 성공했으면 1입니다.",
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 14},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "targets": [{"expr": "sum(kueue_pending_workloads) or vector(0)", "refId": "A"}],
-      "fieldConfig": {"defaults": {"min": 0}, "overrides": []},
-      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+      "targets": [{"expr": "max(kube_pod_status_phase{namespace=\"kubeflow\",pod=~\"nais-kfp-mlflow-integration-.*-system-container-impl-.*\",phase=\"Succeeded\"}) or vector(0)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "auto"}
     },
     {
       "id": 8,
       "type": "stat",
+      "title": "KFP component duration",
+      "description": "실제 train/register component pod의 시작부터 완료까지 걸린 시간입니다.",
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "max(kube_pod_completion_time{namespace=\"kubeflow\",pod=~\"nais-kfp-mlflow-integration-.*-system-container-impl-.*\"} - kube_pod_start_time{namespace=\"kubeflow\",pod=~\"nais-kfp-mlflow-integration-.*-system-container-impl-.*\"}) or vector(0)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+    },
+    {
+      "id": 9,
+      "type": "stat",
       "title": "Kubeflow Pipelines UI",
-      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 14},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 14},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [{"expr": "max(kube_deployment_status_replicas_available{namespace=\"kubeflow\",deployment=\"ml-pipeline-ui\"}) or vector(0)", "refId": "A"}],
       "fieldConfig": {"defaults": {"min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
       "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "auto"}
     },
     {
-      "id": 9,
+      "id": 10,
+      "type": "stat",
+      "title": "Kueue pending workloads",
+      "description": "대기 workload가 없거나 metric이 비어 있으면 0으로 표시합니다.",
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(kueue_pending_workloads) or vector(0)", "refId": "A"}],
+      "fieldConfig": {"defaults": {"min": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "orientation": "auto", "textMode": "auto", "colorMode": "value", "graphMode": "area", "justifyMode": "auto"}
+    },
+    {
+      "id": 11,
       "type": "text",
       "title": "Demo scope",
-      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 14},
-      "options": {"mode": "markdown", "content": "### 기능 실증 범위\n- MLflow experiment / run\n- parameter / metric / artifact\n- registered model version + `champion` alias\n- Grafana live Prometheus/DCGM panels\n\n단일 인스턴스 SQLite/PVC 구성으로, 고가용성·원격 DR은 이번 실증 범위가 아닙니다."}
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 19},
+      "options": {"mode": "markdown", "content": "### 기능 실증 범위\n- Kubeflow Pipeline CPU component 실제 실행\n- MLflow experiment / run / parameter / metric / artifact\n- MAE threshold gate 통과 후 registered model version + `candidate` alias\n- Grafana KFP 성공·실행시간 및 live Prometheus/DCGM panels\n\nKFP run `9e23aab6-9b9c-4b52-bdca-079a998b575b`와 MLflow run `5e9e2e422403454f9548b146dcc33396`로 검증했습니다. 단일 인스턴스 SQLite/PVC 구성으로, 고가용성·원격 DR은 이번 실증 범위가 아닙니다."}
     }
   ],
   "templating": {"list": []},

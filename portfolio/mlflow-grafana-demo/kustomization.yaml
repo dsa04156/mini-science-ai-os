@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - mlflow.yaml
+  - networkpolicy.yaml
+  - ingress.yaml
+  - demo-job.yaml
+configMapGenerator:
+  - name: mlflow-functional-demo-script
+    namespace: science-ai-mlops
+    files:
+      - run.py
+  - name: mlflow-functional-demo-dashboard
+    namespace: science-ai-mlops
+    files:
+      - mlflow-functional-demo.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+        app.kubernetes.io/part-of: mlflow-functional-demo
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    science-ai.io/managed-by: mini-science-ai-os

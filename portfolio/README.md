@@ -18,7 +18,7 @@
 2. [직무요건-증거 매핑](nais-technical-1-matrix.md)
 3. [10분 발표안](presentation.md)
 4. [라이브 데모 동선](live-demo.md)
-5. [SLURM 어댑터 PoC](slurm_adapter.py)
+5. [MLflow + Grafana 기능 실증](mlflow-grafana-demo/README.md)
 6. [복구 훈련](scripts/recovery-drill.sh)
 7. [가용성 훈련](scripts/resilience-drill.sh)
 8. [보안 검토 결과](security-review.md)

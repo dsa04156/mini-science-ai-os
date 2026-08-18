@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mlflow-ingress
+  namespace: science-ai-mlops
+  labels:
+    app.kubernetes.io/part-of: mlflow-functional-demo
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mlflow
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mlflow-functional-demo
+      ports:
+        - protocol: TCP
+          port: 5000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mlflow-demo-egress
+  namespace: science-ai-mlops
+  labels:
+    app.kubernetes.io/part-of: mlflow-functional-demo
+    science-ai.io/managed-by: mini-science-ai-os
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mlflow-functional-demo
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: mlflow
+      ports:
+        - protocol: TCP
+          port: 5000

@@ -36,8 +36,7 @@ rg -q 'httponly=True' services/science_os/job_api.py || { printf 'FAIL: portal c
 rg -q 'samesite="strict"' services/science_os/job_api.py || { printf 'FAIL: portal cookie must be SameSite Strict.\n' >&2; failed=1; }
 rg -q 'Content-Security-Policy' services/science_os/job_api.py || { printf 'FAIL: portal CSP is missing.\n' >&2; failed=1; }
 rg -q 'docs_url="/docs" if _docs_enabled else None' services/science_os/job_api.py || { printf 'FAIL: production docs gate is missing.\n' >&2; failed=1; }
-rg -q 'shell=False' portfolio/slurm_adapter.py || { printf 'FAIL: SLURM runner must explicitly disable shell execution.\n' >&2; failed=1; }
-printf 'PASS: schema, cookie, CSP, docs and SLURM execution controls are present.\n'
+printf 'PASS: schema, cookie, CSP and production docs controls are present.\n'
 
 printf '\n== Review-only signals ==\n'
 inner_html_count="$(rg -g '*.js' -g '*.html' -c '\.innerHTML|insertAdjacentHTML' services open-source-docs workspace-topology 2>/dev/null | awk -F: '{sum += $2} END {print sum + 0}')"

@@ -41,16 +41,30 @@ kubectl get nodes -L accelerator,gpu.platform
 `docs/evidence/demo-*.md`에서 보여준다. 데모 중 새 GPU Job은 자원 경합을 유발할 수
 있으므로 필요할 때만 `make demo`를 실행한다.
 
-### 2:30-4:00 — MLOps 이력
+### 2:30-4:15 — MLOps 실행 이력과 모델 레지스트리
 
 ```bash
 kubectl get deploy -n kubeflow ml-pipeline metadata-grpc-deployment mysql
-kubectl get pod,pvc -n science-ai-mlops
+kubectl get deploy,job,pod,pvc -n science-ai-mlops
+kubectl logs -n science-ai-mlops job/mlflow-functional-demo
 ```
 
-포털에서 Job 상세의 Kubeflow Run ID, Metric, Artifact URI를 보여준다.
+MLflow `Model training → Runs`에서 `functional-smoke` Run과 `mae=0.125`, parameter,
+artifact를 보여준다. 이어서 `Model registry`에서 `nais-demo-mean-baseline` v3와
+`champion` alias를 확인한다. 이 구성은 기능 실증용 SQLite/PVC 단일 인스턴스이며
+고가용성 주장은 하지 않는다.
 
-### 4:00-5:15 — Agent 권한 경계
+### 4:15-5:15 — Grafana 실제 관측값
+
+Grafana의 `NAIS Functional Demo — MLflow & GPU Operations` Dashboard에서 다음을
+한 화면으로 보여준다.
+
+- MLflow tracking server, Functional run, MinIO가 각각 `1`
+- Ready cluster nodes가 `5`
+- RTX 5060 Ti/5080의 DCGM GPU 사용률과 framebuffer 사용량
+- Kueue pending workload와 Kubeflow Pipelines UI 상태
+
+### 5:15-6:15 — Agent 권한 경계
 
 ```bash
 kubectl auth can-i get secrets \
@@ -60,17 +74,6 @@ kubectl auth can-i create jobs \
 ```
 
 기대 결과는 모두 `no`다. 그 다음 `docs/permissions.md`와 Audit Evidence를 보여준다.
-
-### 5:15-6:15 — SLURM 확장 PoC
-
-```bash
-python3 -m portfolio.slurm_adapter plan \
-  --name spectroscopy --script portfolio/examples/train.sh \
-  --gpus 2 --cpus 8 --memory-mb 32768
-```
-
-실물 Scheduler 호출 없이 생성되는 `sbatch` 인자와 입력 검증을 보여준다. 이 PoC가
-현재 제품 실행 경로에 연결되지 않았음을 명확히 말한다.
 
 ### 6:15-7:00 — 실패를 숨기지 않는 운영
 
